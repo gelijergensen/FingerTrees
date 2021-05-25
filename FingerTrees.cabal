@@ -58,7 +58,7 @@ library
     other-modules: HelperTypes
 
     -- LANGUAGE extensions used by modules in this package.
-    other-extensions: FlexibleInstances, MultiParamTypeClasses, PatternSynonyms, ViewPatterns
+    other-extensions: FlexibleInstances, MultiParamTypeClasses, PatternSynonyms, ViewPatterns, ScopedTypeVariables
 
     -- Other library packages from which modules are imported.
     build-depends:    base ^>=4.14.1.0

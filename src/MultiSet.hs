@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {- An implementation of ordered multi sets -}
 module MultiSet where
@@ -103,6 +104,10 @@ null :: MultiSet a -> Bool
 null Empty = True
 null _ = False
 
+{- O(1) -}
+size :: MultiSet a -> Integer
+size (MultiSet xs) = size' xs
+
 {- O(n) -}
 toList :: MultiSet a -> [a]
 toList = foldr (:) []
@@ -190,6 +195,11 @@ incrementElem x =
     { getElem = getElem x,
       multiplicity = multiplicity x + 1
     }
+
+size' :: forall a. Base.FingerTree (MultiSizeMax a) (MultiElem a) -> Integer
+size' xs =
+  let meas = Base.measure xs :: MultiSizeMax a
+   in unSize . cardinality $ meas
 
 nTimes :: Int -> (a -> a) -> a -> a
 nTimes n f = foldr1 (.) $ replicate n f
