@@ -3,7 +3,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-{- An implementation of Ordered Sets -}
+{- An implementation of ordered sets -}
 module Set
   ( Set (Empty),
     empty,
