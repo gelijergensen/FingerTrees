@@ -108,6 +108,10 @@ null _ = False
 size :: MultiSet a -> Integer
 size (MultiSet xs) = size' xs
 
+{- O(1) -}
+numUniqueElems :: MultiSet a -> Integer
+numUniqueElems (MultiSet xs) = supportSize' xs
+
 {- O(n) -}
 toList :: MultiSet a -> [a]
 toList = foldr (:) []
@@ -145,6 +149,42 @@ insert a mset@(MultiSet xs) =
         else MultiSet $ l Base.>< (singleElem a Base.:<| r)
   where
     (l, r) = Base.split ((Max a <=) . getMax) xs
+
+{- O(log(i)), where i <= n/2 is distance from
+   delete point to nearest end -}
+deleteOnce :: (Ord a) => a -> MultiSet a -> MultiSet a
+deleteOnce a Empty = Empty
+deleteOnce a mset@(MultiSet xs) =
+  case r of
+    Base.Empty -> mset
+    x Base.:<| r' ->
+      if a == getElem x
+        then case decrementElem x of
+          Nothing -> MultiSet $ l Base.>< r'
+          Just x' -> MultiSet $ l Base.>< (x' Base.:<| r')
+        else mset
+  where
+    (l, r) = Base.split ((Max a <=) . getMax) xs
+
+{- O(log(i)), where i <= n/2 is distance from
+   delete point to nearest end -}
+deleteEach :: (Ord a) => a -> MultiSet a -> MultiSet a
+deleteEach a Empty = Empty
+deleteEach a mset@(MultiSet xs) =
+  case r of
+    Base.Empty -> mset
+    x Base.:<| r' ->
+      if a == getElem x
+        then MultiSet $ l Base.>< r'
+        else mset
+  where
+    (l, r) = Base.split ((Max a <=) . getMax) xs
+
+{- O(log(i)), where i <= n/2 is distance from
+   element location to nearest end -}
+count :: (Ord a) => a -> MultiSet a -> Integer
+count a (MultiSet xs) =
+  maybe 0 multiplicity (Base.lookup ((Max a <=) . getMax) xs)
 
 -- Generalized functions
 {- O(nlog(n)) -}
@@ -196,10 +236,25 @@ incrementElem x =
       multiplicity = multiplicity x + 1
     }
 
+decrementElem :: MultiElem a -> Maybe (MultiElem a)
+decrementElem x
+  | multiplicity x == 1 = Nothing
+  | otherwise =
+    Just $
+      MultiElem
+        { getElem = getElem x,
+          multiplicity = multiplicity x - 1
+        }
+
 size' :: forall a. Base.FingerTree (MultiSizeMax a) (MultiElem a) -> Integer
 size' xs =
   let meas = Base.measure xs :: MultiSizeMax a
    in unSize . cardinality $ meas
+
+supportSize' :: forall a. Base.FingerTree (MultiSizeMax a) (MultiElem a) -> Integer
+supportSize' xs =
+  let meas = Base.measure xs :: MultiSizeMax a
+   in unSize . supportSize $ meas
 
 nTimes :: Int -> (a -> a) -> a -> a
 nTimes n f = foldr1 (.) $ replicate n f
