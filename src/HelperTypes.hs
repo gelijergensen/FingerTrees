@@ -4,6 +4,8 @@
 {- Helper types and functions for Finger Trees -}
 module HelperTypes where
 
+import qualified Data.Bifunctor as Bifunc
+
 data Digit a
   = One a
   | Two a a
@@ -54,11 +56,22 @@ instance Foldable Digit where
   foldl f z (Three c b a) = f (f (f z c) b) a
   foldl f z (Four d c b a) = f (f (f (f z d) c) b) a
 
+instance Functor Digit where
+  fmap f (One a) = One (f a)
+  fmap f (Two a b) = Two (f a) (f b)
+  fmap f (Three a b c) = Three (f a) (f b) (f c)
+  fmap f (Four a b c d) = Four (f a) (f b) (f c) (f d)
+
 instance Foldable (Node v) where
   foldr f z (Node2 _ a b) = f a $ f b z
   foldr f z (Node3 _ a b c) = f a $ f b $ f c z
   foldl f z (Node2 _ b a) = f (f z b) a
   foldl f z (Node3 _ c b a) = f (f (f z c) b) a
+
+instance Bifunc.Bifunctor Node where
+  bimap fMeas fElem (Node2 v a b) = Node2 (fMeas v) (fElem a) (fElem b)
+  bimap fMeas fElem (Node3 v a b c) =
+    Node3 (fMeas v) (fElem a) (fElem b) (fElem c)
 
 node2 :: (Measured a v) => a -> a -> Node v a
 node2 x y = Node2 (measure x <> measure y) x y

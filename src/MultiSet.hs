@@ -6,8 +6,10 @@
 {- An implementation of ordered multi sets -}
 module MultiSet where
 
+import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
 import qualified FingerTree as Base
+import qualified Set
 import Prelude hiding (null)
 
 newtype MultiSet a
@@ -309,6 +311,15 @@ isSubsetOf (MultiSet xs) (MultiSet ys) = _isSubsetOf xs ys
    where m <= n lengths of xs and ys -}
 isSupsetOf :: (Ord a) => MultiSet a -> MultiSet a -> Bool
 isSupsetOf = flip isSubsetOf
+
+{- O(n) -}
+support :: (Ord a) => MultiSet a -> Set.Set a
+support (MultiSet xs) = Set.Set $ Bifunc.bimap fMeas fElem xs
+  where
+    fMeas v =
+      Set.SizeMax
+        (Set.Size . unSize . supportSize $ v, Set.Max . unMax . getMax $ v)
+    fElem x = Set.Elem . getElem $ x
 
 -- Order statistics
 {- O(1) -}

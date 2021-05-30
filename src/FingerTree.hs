@@ -18,11 +18,9 @@ module FingerTree
   )
 where
 
+import qualified Data.Bifunctor as Bifunc
 import HelperTypes
 import Prelude hiding (lookup, null)
-
-dummy :: Int
-dummy = 3
 
 data FingerTree v a
   = Empty
@@ -58,6 +56,16 @@ instance Foldable (FingerTree v) where
   foldl f z (Deep _ c b a) = foldl f (foldl f' (foldl f z c) b) a
     where
       f' = foldl f
+
+instance Bifunc.Bifunctor FingerTree where
+  bimap _ _ Empty = Empty
+  bimap _ fElem (Shallow a) = Shallow (fElem a)
+  bimap fMeas fElem (Deep v front mid rear) =
+    Deep
+      (fMeas v)
+      (fmap fElem front)
+      (Bifunc.bimap fMeas (Bifunc.bimap fMeas fElem) mid)
+      (fmap fElem rear)
 
 empty :: FingerTree v a
 empty = Empty

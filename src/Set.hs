@@ -5,7 +5,11 @@
 
 {- An implementation of ordered sets -}
 module Set
-  ( Set (Empty),
+  ( Set (..),
+    Elem (..),
+    SizeMax (..),
+    Size (..),
+    Max (..),
     empty,
     singleton,
     null,
