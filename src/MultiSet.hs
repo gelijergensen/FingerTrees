@@ -310,6 +310,41 @@ isSubsetOf (MultiSet xs) (MultiSet ys) = _isSubsetOf xs ys
 isSupsetOf :: (Ord a) => MultiSet a -> MultiSet a -> Bool
 isSupsetOf = flip isSubsetOf
 
+-- Order statistics
+{- O(1) -}
+smallestElem :: MultiSet a -> Maybe a
+smallestElem (MultiSet xs) =
+  case xs of
+    Base.Empty -> Nothing
+    (a Base.:<| _) -> Just $ getElem a
+
+{- O(log(min(k, n-k))) -}
+kthSmallestElem :: Integer -> MultiSet a -> Maybe a
+kthSmallestElem k (MultiSet xs)
+  | k < 1 = Nothing
+  | otherwise = getElem <$> Base.lookup ((Size k <=) . cardinality) xs
+
+{- O(log(min(k, n-k))) -}
+kthSmallestUniqueElem :: Integer -> MultiSet a -> Maybe a
+kthSmallestUniqueElem k (MultiSet xs)
+  | k < 1 = Nothing
+  | otherwise = getElem <$> Base.lookup ((Size k <=) . supportSize) xs
+
+{- O(1) -}
+largestElem :: MultiSet a -> Maybe a
+largestElem (MultiSet xs) =
+  case xs of
+    Base.Empty -> Nothing
+    (_ Base.:|> a) -> Just $ getElem a
+
+{- O(log(min(k, n-k))) -}
+kthLargestElem :: Integer -> MultiSet a -> Maybe a
+kthLargestElem k xs = kthSmallestElem (size xs - k + 1) xs
+
+{- O(log(min(k, n-k))) -}
+kthLargestUniqueElem :: Integer -> MultiSet a -> Maybe a
+kthLargestUniqueElem k xs = kthSmallestUniqueElem (numUniqueElems xs - k + 1) xs
+
 -- Generalized functions
 {- O(nlog(n)) -}
 fromFoldable :: (Foldable f, Ord a) => f a -> MultiSet a
