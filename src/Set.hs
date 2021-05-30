@@ -287,7 +287,7 @@ isSubsetOf (Set xs) (Set ys) = _isSubsetOf xs ys
         isSupsetRest =
           case r of
             Base.Empty -> False
-            (x Base.:<| r') -> x == b && _isSubsetOf bs' r
+            (x Base.:<| r') -> x == b && _isSubsetOf bs' r'
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}

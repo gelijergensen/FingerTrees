@@ -10,3 +10,4 @@ An implementation of 2-3 Finger Trees as in Hinze &amp; Paterson 2006 with appli
 5. Interval Tree
 6. Testing
 7. Abstraction
+8. Fmapping + support :: MultiSet a -> Set a
