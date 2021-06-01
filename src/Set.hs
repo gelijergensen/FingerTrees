@@ -23,6 +23,8 @@ module Set
     insert,
     delete,
     member,
+    map,
+    mapMonotonic,
     union,
     intersection,
     difference,
@@ -41,8 +43,9 @@ module Set
   )
 where
 
+import qualified Data.Bifunctor as Bifunc
 import qualified FingerTree as Base
-import Prelude hiding (null)
+import Prelude hiding (map, null)
 
 newtype Set a
   = Set (Base.FingerTree (SizeMax a) (Elem a))
@@ -90,6 +93,18 @@ instance Monoid (Max a) where
 
 instance Base.Measured (Elem a) (SizeMax a) where
   measure (Elem x) = SizeMax (Size 1, Max x)
+
+instance Functor SizeMax where
+  fmap f x =
+    SizeMax
+      { unSizeMax = Bifunc.second (Max . f . unMax) . unSizeMax $ x
+      }
+
+instance Functor Elem where
+  fmap f x =
+    Elem
+      { getElem = f $ getElem x
+      }
 
 instance Foldable Set where
   foldr f z (Set xs) = foldr f' z xs
@@ -183,6 +198,14 @@ member a (Set xs) =
   case Base.lookup ((Max a <=) . getMax) xs of
     Nothing -> False
     Just (Elem x) -> a == x
+
+{- O(nlog(n)) -}
+map :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
+map f = fromList . fmap f . toList
+
+{- O(n). Does not check for monotonicity (that x < y => f x < f y) -}
+mapMonotonic :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
+mapMonotonic f (Set xs) = Set $ Bifunc.bimap (fmap f) (fmap f) xs
 
 -- Set theoretic functions
 {- Probably amortized O(m log(n/m + 1),

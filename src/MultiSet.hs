@@ -10,7 +10,7 @@ import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
 import qualified FingerTree as Base
 import qualified Set
-import Prelude hiding (null)
+import Prelude hiding (map, null)
 
 newtype MultiSet a
   = MultiSet (Base.FingerTree (MultiSizeMax a) (MultiElem a))
@@ -75,6 +75,21 @@ instance Base.Measured (MultiElem a) (MultiSizeMax a) where
       { cardinality = Size $ multiplicity x,
         supportSize = Size 1,
         getMax = Max $ getElem x
+      }
+
+instance Functor MultiSizeMax where
+  fmap f x =
+    MultiSizeMax
+      { cardinality = cardinality x,
+        supportSize = supportSize x,
+        getMax = Max . f . unMax . getMax $ x
+      }
+
+instance Functor MultiElem where
+  fmap f x =
+    MultiElem
+      { getElem = f $ getElem x,
+        multiplicity = multiplicity x
       }
 
 instance Foldable MultiElem where
@@ -190,6 +205,14 @@ deleteEach a mset@(MultiSet xs) =
 count :: (Ord a) => a -> MultiSet a -> Integer
 count a (MultiSet xs) =
   maybe 0 multiplicity (Base.lookup ((Max a <=) . getMax) xs)
+
+{- O(nlog(n)) -}
+map :: (Ord a, Ord b) => (a -> b) -> MultiSet a -> MultiSet b
+map f = fromList . fmap f . toList
+
+{- O(n). Does not check for monotonicity (that x < y => f x < f y) -}
+mapMonotonic :: (Ord a, Ord b) => (a -> b) -> MultiSet a -> MultiSet b
+mapMonotonic f (MultiSet xs) = MultiSet $ Bifunc.bimap (fmap f) (fmap f) xs
 
 -- Set theoretic functions
 {- Probably amortized O(m log(n/m + 1),
