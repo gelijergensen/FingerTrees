@@ -113,3 +113,59 @@ reversedDifferenceWith fMerge fMeas as bs@(b Base.:<| bs') =
         else b Base.:<| differenceWith fMerge fMeas bs' r
   where
     (l, r) = Base.split (((<=) `on` fMeas) $ Base.measure b) as
+
+areDisjointWith ::
+  (Base.Measured a v, Eq a, Ord w) =>
+  (v -> w) ->
+  Base.FingerTree v a ->
+  Base.FingerTree v a ->
+  Bool
+areDisjointWith _ Base.Empty _ = True
+areDisjointWith _ _ Base.Empty = True
+areDisjointWith fMeas as (b Base.:<| bs') =
+  case r of
+    Base.Empty -> True
+    a Base.:<| r' -> a /= b && areDisjointWith fMeas bs' r
+  where
+    (l, r) = Base.split (((<=) `on` fMeas) $ Base.measure b) as
+
+isSubsetOfWith ::
+  (Base.Measured a v, Eq a, Ord w) =>
+  (Base.FingerTree v a -> Integer) ->
+  (a -> a -> Bool) ->
+  (v -> w) ->
+  Base.FingerTree v a ->
+  Base.FingerTree v a ->
+  Bool
+isSubsetOfWith _ _ _ Base.Empty _ = True
+isSubsetOfWith _ _ _ _ Base.Empty = False
+isSubsetOfWith fSize fLeq fMeas as bs@(b Base.:<| bs') =
+  fSize as <= fSize bs && Base.null l && isSubsetRest
+  where
+    (l, r) = Base.split (((<=) `on` fMeas) $ Base.measure b) as
+    isSubsetRest =
+      case r of
+        Base.Empty -> True
+        a Base.:<| r' ->
+          if a == b
+            then fLeq a b && isSupsetOfWith fSize fLeq fMeas bs' r'
+            else isSupsetOfWith fSize fLeq fMeas bs' r
+
+isSupsetOfWith ::
+  (Base.Measured a v, Eq a, Ord w) =>
+  (Base.FingerTree v a -> Integer) ->
+  (a -> a -> Bool) ->
+  (v -> w) ->
+  Base.FingerTree v a ->
+  Base.FingerTree v a ->
+  Bool
+isSupsetOfWith _ _ _ _ Base.Empty = True
+isSupsetOfWith _ _ _ Base.Empty _ = False
+isSupsetOfWith fSize fLeq fMeas as bs@(b Base.:<| bs') =
+  fSize as >= fSize bs && isSupsetRest
+  where
+    (l, r) = Base.split (((<=) `on` fMeas) $ Base.measure b) as
+    isSupsetRest =
+      case r of
+        Base.Empty -> False
+        (a Base.:<| r') -> fLeq b a && isSubsetOfWith fSize fLeq fMeas bs' r'

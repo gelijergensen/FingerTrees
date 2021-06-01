@@ -4,7 +4,45 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {- An implementation of ordered multi sets -}
-module MultiSet where
+module MultiSet
+  ( MultiSet,
+    empty,
+    singleton,
+    null,
+    size,
+    numUniqueElems,
+    toList,
+    fromList,
+    fromAscList,
+    fromDescList,
+    fromDistinctAscList,
+    fromDistinctDescList,
+    insert,
+    deleteOnce,
+    deleteEach,
+    count,
+    map,
+    mapMonotonic,
+    union,
+    intersection,
+    difference,
+    areDisjoint,
+    isSubsetOf,
+    isSupsetOf,
+    support,
+    smallestElem,
+    kthSmallestElem,
+    kthSmallestUniqueElem,
+    largestElem,
+    kthLargestElem,
+    kthLargestUniqueElem,
+    fromFoldable,
+    fromAscFoldable,
+    fromDescFoldable,
+    fromDistinctAscFoldable,
+    fromDistinctDescFoldable,
+  )
+where
 
 import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
@@ -205,53 +243,20 @@ difference (MultiSet xs) (MultiSet ys) =
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
-isDisjointFrom :: (Ord a) => MultiSet a -> MultiSet a -> Bool
-isDisjointFrom (MultiSet xs) (MultiSet ys) = _isDisjointFrom xs ys
-  where
-    _isDisjointFrom Base.Empty _ = True
-    _isDisjointFrom _ Base.Empty = True
-    _isDisjointFrom as (b Base.:<| bs') =
-      case r of
-        Base.Empty -> True
-        x Base.:<| r' -> getMultiElem x /= getMultiElem b && _isDisjointFrom bs' r
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
+areDisjoint :: (Ord a) => MultiSet a -> MultiSet a -> Bool
+areDisjoint (MultiSet xs) (MultiSet ys) = areDisjointWith getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 isSubsetOf :: (Ord a) => MultiSet a -> MultiSet a -> Bool
-isSubsetOf (MultiSet xs) (MultiSet ys) = _isSubsetOf xs ys
-  where
-    _isSubsetOf Base.Empty _ = True
-    _isSubsetOf _ Base.Empty = False
-    _isSubsetOf as bs@(b Base.:<| bs') =
-      size' as <= size' bs && Base.null l && isSubsetRest
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
-        isSubsetRest =
-          case r of
-            Base.Empty -> True
-            x Base.:<| r' ->
-              if getMultiElem x == getMultiElem b
-                then multiplicity x <= multiplicity b && _isSupsetOf bs' r'
-                else _isSupsetOf bs' r
-    _isSupsetOf _ Base.Empty = True
-    _isSupsetOf Base.Empty _ = False
-    _isSupsetOf as bs@(b Base.:<| bs') = size' as >= size' bs && isSupsetRest
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
-        isSupsetRest =
-          case r of
-            Base.Empty -> False
-            (x Base.:<| r') ->
-              getMultiElem x == getMultiElem b
-                && multiplicity x >= multiplicity b
-                && _isSubsetOf bs' r'
+isSubsetOf (MultiSet xs) (MultiSet ys) =
+  isSubsetOfWith size' ((<=) `on` multiplicity) getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 isSupsetOf :: (Ord a) => MultiSet a -> MultiSet a -> Bool
-isSupsetOf = flip isSubsetOf
+isSupsetOf (MultiSet xs) (MultiSet ys) =
+  isSupsetOfWith size' ((<=) `on` multiplicity) getMax xs ys
 
 {- O(n) -}
 support :: (Ord a) => MultiSet a -> Set.Set a

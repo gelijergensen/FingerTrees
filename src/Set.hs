@@ -24,7 +24,7 @@ module Set
     union,
     intersection,
     difference,
-    isDisjointFrom,
+    areDisjoint,
     isSubsetOf,
     isSupsetOf,
     smallestElem,
@@ -40,7 +40,6 @@ module Set
 where
 
 import qualified Data.Bifunctor as Bifunc
-import Data.Function (on)
 import qualified FingerTree as Base
 import SetHelper
 import Prelude hiding (map, null)
@@ -207,50 +206,18 @@ difference (Set xs) (Set ys) =
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
-isDisjointFrom :: (Ord a) => Set a -> Set a -> Bool
-isDisjointFrom (Set xs) (Set ys) = _isDisjointFrom xs ys
-  where
-    _isDisjointFrom Base.Empty _ = True
-    _isDisjointFrom _ Base.Empty = True
-    _isDisjointFrom as (b Base.:<| bs') =
-      case r of
-        Base.Empty -> True
-        x Base.:<| r' -> x /= b && _isDisjointFrom bs' r
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
+areDisjoint :: (Ord a) => Set a -> Set a -> Bool
+areDisjoint (Set xs) (Set ys) = areDisjointWith getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 isSubsetOf :: (Ord a) => Set a -> Set a -> Bool
-isSubsetOf (Set xs) (Set ys) = _isSubsetOf xs ys
-  where
-    _isSubsetOf Base.Empty _ = True
-    _isSubsetOf _ Base.Empty = False
-    _isSubsetOf as bs@(b Base.:<| bs') =
-      size' as <= size' bs && Base.null l && isSubsetRest
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
-        isSubsetRest =
-          case r of
-            Base.Empty -> True
-            x Base.:<| r' ->
-              if x == b
-                then _isSupsetOf bs' r'
-                else _isSupsetOf bs' r
-    _isSupsetOf _ Base.Empty = True
-    _isSupsetOf Base.Empty _ = False
-    _isSupsetOf as bs@(b Base.:<| bs') = size' as >= size' bs && isSupsetRest
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
-        isSupsetRest =
-          case r of
-            Base.Empty -> False
-            (x Base.:<| r') -> x == b && _isSubsetOf bs' r'
+isSubsetOf (Set xs) (Set ys) = isSubsetOfWith size' (==) getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 isSupsetOf :: (Ord a) => Set a -> Set a -> Bool
-isSupsetOf = flip isSubsetOf
+isSupsetOf (Set xs) (Set ys) = isSupsetOfWith size' (==) getMax xs ys
 
 -- Order statistics
 {- O(1) -}
