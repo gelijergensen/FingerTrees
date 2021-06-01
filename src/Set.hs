@@ -5,11 +5,7 @@
 
 {- An implementation of ordered sets -}
 module Set
-  ( Set (..),
-    Elem (..),
-    SizeMax (..),
-    Size (..),
-    Max (..),
+  ( Set,
     empty,
     singleton,
     null,
@@ -44,66 +40,60 @@ module Set
 where
 
 import qualified Data.Bifunctor as Bifunc
+import Data.Function (on)
 import qualified FingerTree as Base
+import SetHelper
 import Prelude hiding (map, null)
 
-newtype Set a
-  = Set (Base.FingerTree (SizeMax a) (Elem a))
+data SizeMax a = SizeMax
+  { getSize :: Size,
+    getMax :: Max a
+  }
+  deriving (Eq, Show)
 
 newtype Elem a = Elem
   { getElem :: a
   }
   deriving (Eq, Show)
 
-newtype SizeMax a = SizeMax
-  { unSizeMax :: (Size, Max a)
-  }
-  deriving (Eq, Show)
-
-data Max a
-  = NegInfinity
-  | Max
-      { unMax :: a
-      }
-  deriving (Eq, Ord, Show)
-
-newtype Size = Size
-  { unSize :: Integer
-  }
-  deriving (Eq, Ord, Show)
+newtype Set a
+  = Set (Base.FingerTree (SizeMax a) (Elem a))
 
 instance Semigroup (SizeMax a) where
-  SizeMax x <> SizeMax y = SizeMax (x <> y)
+  x <> y =
+    SizeMax
+      { getSize = getSize x <> getSize y,
+        getMax = getMax x <> getMax y
+      }
 
 instance Monoid (SizeMax a) where
-  mempty = SizeMax mempty
-
-instance Semigroup Size where
-  Size x <> Size y = Size (x + y)
-
-instance Monoid Size where
-  mempty = Size 0
-
-instance Semigroup (Max a) where
-  x <> NegInfinity = x
-  _ <> x = x
-
-instance Monoid (Max a) where
-  mempty = NegInfinity
-
-instance Base.Measured (Elem a) (SizeMax a) where
-  measure (Elem x) = SizeMax (Size 1, Max x)
+  mempty =
+    SizeMax
+      { getSize = mempty,
+        getMax = mempty
+      }
 
 instance Functor SizeMax where
   fmap f x =
     SizeMax
-      { unSizeMax = Bifunc.second (Max . f . unMax) . unSizeMax $ x
+      { getSize = getSize x,
+        getMax = fmap f . getMax $ x
       }
+
+instance Foldable Elem where
+  foldr f z x = f (getElem x) z
 
 instance Functor Elem where
   fmap f x =
     Elem
       { getElem = f $ getElem x
+      }
+
+instance Base.Measured (Elem a) (SizeMax a) where
+  measure x =
+    SizeMax
+      { getSize = Size 1,
+        getMax = Max $ getElem x
       }
 
 instance Foldable Set where
@@ -223,7 +213,7 @@ union (Set xs) (Set ys) = Set $ _union xs ys
             then (l Base.:|> b) Base.>< _union bs' r'
             else (l Base.:|> b) Base.>< _union bs' r
       where
-        (l, r) = Base.split (onMax (<=) $ Base.measure b) as
+        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
@@ -240,7 +230,7 @@ intersection (Set xs) (Set ys) = Set $ _intersection xs ys
             then b Base.:<| _intersection bs' r'
             else _intersection bs' r'
       where
-        (l, r) = Base.split (onMax (<=) $ Base.measure b) as
+        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
@@ -259,7 +249,7 @@ difference (Set xs) (Set ys) = Set $ _difference xs ys
           where
             differenceRest = _differenceReversed bs' r'
       where
-        (l, r) = Base.split (onMax (<=) $ Base.measure b) as
+        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
     _differenceReversed Base.Empty bs = bs
     _differenceReversed _ Base.Empty = Base.Empty
     _differenceReversed as bs@(b Base.:<| bs') =
@@ -272,7 +262,7 @@ difference (Set xs) (Set ys) = Set $ _difference xs ys
           where
             differenceRest = _difference bs' r'
       where
-        (l, r) = Base.split (onMax (<=) $ Base.measure b) as
+        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
@@ -286,7 +276,7 @@ isDisjointFrom (Set xs) (Set ys) = _isDisjointFrom xs ys
         Base.Empty -> True
         x Base.:<| r' -> x /= b && _isDisjointFrom bs' r
       where
-        (l, r) = Base.split (onMax (<=) $ Base.measure b) as
+        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
@@ -298,7 +288,7 @@ isSubsetOf (Set xs) (Set ys) = _isSubsetOf xs ys
     _isSubsetOf as bs@(b Base.:<| bs') =
       size' as <= size' bs && Base.null l && isSubsetRest
       where
-        (l, r) = Base.split (onMax (<=) $ Base.measure b) as
+        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
         isSubsetRest =
           case r of
             Base.Empty -> True
@@ -310,7 +300,7 @@ isSubsetOf (Set xs) (Set ys) = _isSubsetOf xs ys
     _isSupsetOf Base.Empty _ = False
     _isSupsetOf as bs@(b Base.:<| bs') = size' as >= size' bs && isSupsetRest
       where
-        (l, r) = Base.split (onMax (<=) $ Base.measure b) as
+        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
         isSupsetRest =
           case r of
             Base.Empty -> False
@@ -390,15 +380,3 @@ size' :: forall a. Base.FingerTree (SizeMax a) (Elem a) -> Integer
 size' xs =
   let meas = Base.measure xs :: SizeMax a
    in unSize . getSize $ meas
-
-getSize :: SizeMax a -> Size
-getSize = fst . unSizeMax
-
-getMax :: SizeMax a -> Max a
-getMax = snd . unSizeMax
-
-onSize :: (Size -> Size -> b) -> SizeMax a -> SizeMax a -> b
-onSize f (SizeMax (x, _)) (SizeMax (y, _)) = f x y
-
-onMax :: (Max a -> Max a -> b) -> SizeMax a -> SizeMax a -> b
-onMax f (SizeMax (_, x)) (SizeMax (_, y)) = f x y
