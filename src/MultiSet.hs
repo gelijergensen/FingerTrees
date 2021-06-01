@@ -170,6 +170,16 @@ insert a mset@(MultiSet xs) =
   where
     (l, r) = Base.split ((Max a <=) . getMax) xs
 
+insert' :: (Ord a) => a -> MultiSet a -> MultiSet a
+insert' a (MultiSet xs) =
+  MultiSet $ Base.modify (_insert a) ((Max a <=) . getMax) xs
+  where
+    _insert a Nothing = [singleElem a]
+    _insert a (Just x) =
+      if a == getElem x
+        then [incrementElem x]
+        else [singleElem a, x]
+
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 deleteOnce :: (Ord a) => a -> MultiSet a -> MultiSet a

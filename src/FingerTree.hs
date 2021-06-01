@@ -15,6 +15,7 @@ module FingerTree
     fromFoldable,
     split,
     lookup,
+    modify,
   )
 where
 
@@ -252,6 +253,16 @@ lookup p tree =
    in if p (v <> measure a)
         then Just a
         else Nothing
+
+{- O(log(i)), where i <= n/2 is distance from
+   lookup point to nearest end -}
+modify :: (Measured a v) => (Maybe a -> [a]) -> (v -> Bool) -> FingerTree v a -> FingerTree v a
+modify f _ Empty = fromFoldable $ f Nothing
+modify f p xs = case r of
+  Empty -> l >< fromFoldable (f Nothing)
+  x :<| r' -> l >< fromFoldable (f $ Just x) >< r'
+  where
+    (l, r) = split p xs
 
 -- Fairly ugly function, since we have so many cases,
 -- but each case is straight-forward
