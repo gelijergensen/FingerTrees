@@ -192,68 +192,18 @@ mapMonotonic f (Set xs) = Set $ Bifunc.bimap (fmap f) (fmap f) xs
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 union :: (Ord a) => Set a -> Set a -> Set a
-union (Set xs) (Set ys) = Set $ _union xs ys
-  where
-    _union Base.Empty bs = bs
-    _union as Base.Empty = as
-    _union as bs@(b Base.:<| bs') =
-      case r of
-        Base.Empty -> l Base.>< bs
-        x Base.:<| r' ->
-          if x == b
-            then (l Base.:|> b) Base.>< _union bs' r'
-            else (l Base.:|> b) Base.>< _union bs' r
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
+union (Set xs) (Set ys) = Set $ unionWith const getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 intersection :: (Ord a) => Set a -> Set a -> Set a
-intersection (Set xs) (Set ys) = Set $ _intersection xs ys
-  where
-    _intersection Base.Empty _ = Base.Empty
-    _intersection _ Base.Empty = Base.Empty
-    _intersection as (b Base.:<| bs') =
-      case r of
-        Base.Empty -> Base.Empty
-        x Base.:<| r' ->
-          if x == b
-            then b Base.:<| _intersection bs' r'
-            else _intersection bs' r'
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
+intersection (Set xs) (Set ys) = Set $ intersectionWith const getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 difference :: (Ord a) => Set a -> Set a -> Set a
-difference (Set xs) (Set ys) = Set $ _difference xs ys
-  where
-    _difference Base.Empty _ = Base.Empty
-    _difference as Base.Empty = as
-    _difference as (b Base.:<| bs') =
-      case r of
-        Base.Empty -> l
-        x Base.:<| r' ->
-          if x == b
-            then l Base.>< differenceRest
-            else differenceRest
-          where
-            differenceRest = _differenceReversed bs' r'
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
-    _differenceReversed Base.Empty bs = bs
-    _differenceReversed _ Base.Empty = Base.Empty
-    _differenceReversed as bs@(b Base.:<| bs') =
-      case r of
-        Base.Empty -> bs
-        x Base.:<| r' ->
-          if x == b
-            then differenceRest
-            else b Base.:<| differenceRest
-          where
-            differenceRest = _difference bs' r'
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
+difference (Set xs) (Set ys) =
+  Set $ differenceWith (\x y -> Nothing) getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}

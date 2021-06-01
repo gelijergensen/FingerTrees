@@ -25,7 +25,7 @@ data MultiElem a = MultiElem
   { getMultiElem :: a,
     multiplicity :: Integer
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 newtype MultiSet a
   = MultiSet (Base.FingerTree (MultiSizeMax a) (MultiElem a))
@@ -53,6 +53,9 @@ instance Functor MultiSizeMax where
         supportSize = supportSize x,
         getMax = fmap f . getMax $ x
       }
+
+instance Eq a => Eq (MultiElem a) where
+  x == y = getMultiElem x == getMultiElem y
 
 instance Foldable MultiElem where
   foldr f z x = nTimes (fromInteger $ multiplicity x) (f $ getMultiElem x) z
@@ -185,72 +188,20 @@ mapMonotonic f (MultiSet xs) = MultiSet $ Bifunc.bimap (fmap f) (fmap f) xs
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 union :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
-union (MultiSet xs) (MultiSet ys) = MultiSet $ _union xs ys
-  where
-    _union Base.Empty bs = bs
-    _union as Base.Empty = as
-    _union as bs@(b Base.:<| bs') =
-      case r of
-        Base.Empty -> l Base.>< bs
-        x Base.:<| r' ->
-          if getMultiElem x == getMultiElem b
-            then (l Base.:|> sumMultiElem x b) Base.>< _union bs' r'
-            else (l Base.:|> b) Base.>< _union bs' r
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
+union (MultiSet xs) (MultiSet ys) =
+  MultiSet $ unionWith sumMultiElem getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 intersection :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
-intersection (MultiSet xs) (MultiSet ys) = MultiSet $ _intersection xs ys
-  where
-    _intersection Base.Empty _ = Base.Empty
-    _intersection _ Base.Empty = Base.Empty
-    _intersection as (b Base.:<| bs') =
-      case r of
-        Base.Empty -> Base.Empty
-        x Base.:<| r' ->
-          if getMultiElem x == getMultiElem b
-            then minMultiElem x b Base.:<| _intersection bs' r'
-            else _intersection bs' r'
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
+intersection (MultiSet xs) (MultiSet ys) =
+  MultiSet $ intersectionWith minMultiElem getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 difference :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
-difference (MultiSet xs) (MultiSet ys) = MultiSet $ _difference xs ys
-  where
-    _difference Base.Empty _ = Base.Empty
-    _difference as Base.Empty = as
-    _difference as (b Base.:<| bs') =
-      case r of
-        Base.Empty -> l
-        x Base.:<| r' ->
-          if getMultiElem x == getMultiElem b
-            then case differenceMultiElem x b of
-              Nothing -> l Base.>< differenceRest
-              Just x' -> (l Base.:|> x') Base.>< differenceRest
-            else differenceRest
-          where
-            differenceRest = _differenceReversed bs' r'
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
-    _differenceReversed Base.Empty bs = bs
-    _differenceReversed _ Base.Empty = Base.Empty
-    _differenceReversed as bs@(b Base.:<| bs') =
-      case r of
-        Base.Empty -> bs
-        x Base.:<| r' ->
-          if getMultiElem x == getMultiElem b
-            then case differenceMultiElem b x of
-              Nothing -> differenceRest
-              Just b' -> b Base.:<| differenceRest
-            else b Base.:<| differenceRest
-          where
-            differenceRest = _difference bs' r'
-      where
-        (l, r) = Base.split (((<=) `on` getMax) $ Base.measure b) as
+difference (MultiSet xs) (MultiSet ys) =
+  MultiSet $ differenceWith differenceMultiElem getMax xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
@@ -430,7 +381,7 @@ sumMultiElem x = fromJust . changeMultiplicity (+ multiplicity x)
 
 -- Assumes the two MultiElem have the same value
 differenceMultiElem :: MultiElem a -> MultiElem a -> Maybe (MultiElem a)
-differenceMultiElem x = changeMultiplicity (subtract . multiplicity $ x)
+differenceMultiElem x y = changeMultiplicity (subtract . multiplicity $ y) x
 
 -- Assumes the two MultiElem have the same value
 minMultiElem :: MultiElem a -> MultiElem a -> MultiElem a
