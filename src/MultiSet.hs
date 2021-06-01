@@ -8,7 +8,7 @@ module MultiSet where
 
 import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, maybeToList)
 import qualified FingerTree as Base
 import qualified Set
 import SetHelper
@@ -139,19 +139,7 @@ fromDistinctDescList = fromDistinctDescFoldable
 {- O(log(i)), where i <= n/2 is distance from
    insert point to nearest end -}
 insert :: (Ord a) => a -> MultiSet a -> MultiSet a
-insert a Empty = singleton a
-insert a mset@(MultiSet xs) =
-  case r of
-    Base.Empty -> MultiSet $ l Base.:|> multiElem a
-    x Base.:<| r' ->
-      if a == getMultiElem x
-        then MultiSet $ l Base.>< (incrementMultiElem x Base.:<| r')
-        else MultiSet $ l Base.>< (multiElem a Base.:<| r)
-  where
-    (l, r) = Base.split ((Max a <=) . getMax) xs
-
-insert' :: (Ord a) => a -> MultiSet a -> MultiSet a
-insert' a (MultiSet xs) =
+insert a (MultiSet xs) =
   MultiSet $ Base.modify (_insert a) ((Max a <=) . getMax) xs
   where
     _insert a Nothing = [multiElem a]
@@ -163,32 +151,21 @@ insert' a (MultiSet xs) =
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 deleteOnce :: (Ord a) => a -> MultiSet a -> MultiSet a
-deleteOnce a Empty = Empty
-deleteOnce a mset@(MultiSet xs) =
-  case r of
-    Base.Empty -> mset
-    x Base.:<| r' ->
-      if a == getMultiElem x
-        then case decrementMultiElem x of
-          Nothing -> MultiSet $ l Base.>< r'
-          Just x' -> MultiSet $ l Base.>< (x' Base.:<| r')
-        else mset
+deleteOnce a (MultiSet xs) = MultiSet $ Base.modify (_deleteOnce a) ((Max a <=) . getMax) xs
   where
-    (l, r) = Base.split ((Max a <=) . getMax) xs
+    _deleteOnce a Nothing = []
+    _deleteOnce a (Just x) =
+      if a == getMultiElem x
+        then maybeToList $ decrementMultiElem x
+        else []
 
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 deleteEach :: (Ord a) => a -> MultiSet a -> MultiSet a
-deleteEach a Empty = Empty
-deleteEach a mset@(MultiSet xs) =
-  case r of
-    Base.Empty -> mset
-    x Base.:<| r' ->
-      if a == getMultiElem x
-        then MultiSet $ l Base.>< r'
-        else mset
+deleteEach a (MultiSet xs) = MultiSet $ Base.modify (_deleteEach a) ((Max a <=) . getMax) xs
   where
-    (l, r) = Base.split ((Max a <=) . getMax) xs
+    _deleteEach a Nothing = []
+    _deleteEach a (Just x) = [x | a /= getMultiElem x]
 
 {- O(log(i)), where i <= n/2 is distance from
    element location to nearest end -}

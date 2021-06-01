@@ -3,7 +3,6 @@
 
 module SetHelper where
 
-import Data.Maybe (fromJust)
 import qualified FingerTree as Base
 
 data Max a

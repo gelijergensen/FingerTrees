@@ -156,30 +156,21 @@ fromDistinctDescList = fromDistinctDescFoldable
 {- O(log(i)), where i <= n/2 is distance from
    insert point to nearest end -}
 insert :: (Ord a) => a -> Set a -> Set a
-insert a Empty = singleton a
-insert a set@(Set xs) =
-  case r of
-    Base.Empty -> Set $ l Base.:|> Elem a
-    x Base.:<| _ ->
-      if a == getElem x
-        then set
-        else Set $ l Base.>< (Elem a Base.:<| r)
+insert a (Set xs) = Set $ Base.modify (_insert a) ((Max a <=) . getMax) xs
   where
-    (l, r) = Base.split ((Max a <=) . getMax) xs
+    _insert a Nothing = [Elem a]
+    _insert a (Just x) =
+      if a == getElem x
+        then [x]
+        else [Elem a, x]
 
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 delete :: (Ord a) => a -> Set a -> Set a
-delete a Empty = Empty
-delete a set@(Set xs) =
-  case r of
-    Base.Empty -> set
-    x Base.:<| r' ->
-      if a == getElem x
-        then Set $ l Base.>< r'
-        else set
+delete a (Set xs) = Set $ Base.modify (_delete a) ((Max a <=) . getMax) xs
   where
-    (l, r) = Base.split ((Max a <=) . getMax) xs
+    _delete a Nothing = []
+    _delete a (Just x) = [x | a /= getElem x]
 
 {- O(log(i)), where i <= n/2 is distance from
    member location to nearest end -}
