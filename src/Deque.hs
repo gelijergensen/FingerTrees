@@ -31,8 +31,24 @@ where
 import Control.Applicative (liftA2)
 import qualified Data.Bifunctor as Bifunc
 import Data.Maybe (fromJust)
+import Data.Traversable (mapAccumL, mapAccumR)
 import qualified FingerTree as Base
-import Prelude hiding (drop, head, init, last, length, lookup, null, splitAt, tail, take)
+import Prelude hiding
+  ( drop,
+    head,
+    init,
+    last,
+    length,
+    lookup,
+    null,
+    scanl,
+    scanl1,
+    scanr,
+    scanr1,
+    splitAt,
+    tail,
+    take,
+  )
 
 newtype Size = Size
   { getSize :: Int
@@ -266,3 +282,49 @@ splitAt :: Int -> Deque a -> (Deque a, Deque a)
 splitAt i (Deque xs) = (Deque l, Deque r)
   where
     (l, r) = Base.split (Size i <) xs
+
+foldMapWithIndex :: Monoid m => (Int -> a -> m) -> Deque a -> m
+foldMapWithIndex f = foldMap (uncurry f) . snd . mapAccumL withIndex 0
+  where
+    withIndex i x = (i + 1, (i, x))
+
+foldlWithIndex :: (b -> Int -> a -> b) -> b -> Deque a -> b
+foldlWithIndex f z xs = fst $ foldl f' (z, 0) xs
+  where
+    f' (b, i) a = (f b i a, i + 1)
+
+foldrWithIndex :: (Int -> a -> b -> b) -> b -> Deque a -> b
+foldrWithIndex f z xs = fst $ foldr f' (z, 0) xs
+  where
+    f' a (b, i) = (f i a b, i + 1)
+
+mapWithIndex :: (Int -> a -> b) -> Deque a -> Deque b
+mapWithIndex f = snd . mapAccumL f' 0
+  where
+    f' i x = (i + 1, f i x)
+
+traverseWithIndex :: Applicative f => (Int -> a -> f b) -> Deque a -> f (Deque b)
+traverseWithIndex f = traverse (uncurry f) . snd . mapAccumL withIndex 0
+  where
+    withIndex i x = (i + 1, (i, x))
+
+scanl :: (b -> a -> b) -> b -> Deque a -> Deque b
+scanl f z0 as = z0 :<| snd (mapAccumL (\z a -> let b = f z a in (b, b)) z0 as)
+
+scanl1 :: (a -> a -> a) -> Deque a -> Deque a
+scanl1 f xs = case viewL xs of
+  NilL -> error "Empty deque encountered in call to Deque.scanl1"
+  ConsL x xs' -> scanl f x xs'
+
+scanr :: (a -> b -> b) -> b -> Deque a -> Deque b
+scanr f z0 as = snd (mapAccumR (\z a -> let b = f a z in (b, b)) z0 as) :|> z0
+
+scanr1 :: (a -> a -> a) -> Deque a -> Deque a
+scanr1 f xs = case viewR xs of
+  NilR -> error "Empty deque encountered in call to Deque.scanr1"
+  ConsR xs' x -> scanr f x xs'
+
+-- {- O(n) -}
+-- findIndicesL :: (a -> Bool) -> Deque a -> [Int]
+-- findIndicesL p xs = viewL xs
+--   where
