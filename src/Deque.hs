@@ -1,23 +1,21 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {- An implementation of deques -}
 module Deque
-  ( Deque,
+  ( Deque (Empty, (:<|), (:|>)),
     empty,
     singleton,
     null,
     size,
     toList,
-    -- fromList,
-    -- fromAscList,
-    -- fromDescList,
-    -- fromDistinctAscList,
-    -- fromDistinctDescList,
-    -- insert,
-    -- delete,
+    fromList,
+    head,
+    tail,
+    last,
+    init,
     -- member,
     -- map,
     -- mapMonotonic,
@@ -31,17 +29,13 @@ module Deque
     -- kthSmallestElem,
     -- largestElem,
     -- kthLargestElem,
-    -- fromFoldable,
-    -- fromAscFoldable,
-    -- fromDescFoldable,
-    -- fromDistinctAscFoldable,
-    -- fromDistinctDescFoldable,
+    fromFoldable,
   )
 where
 
 import qualified Data.Bifunctor as Bifunc
 import qualified FingerTree as Base
-import Prelude hiding (map, null)
+import Prelude hiding (head, init, last, null, tail)
 
 newtype Size = Size
   { getSize :: Integer
@@ -82,6 +76,9 @@ instance Foldable Deque where
     where
       f' a b = f a (getElem b)
 
+instance Functor Deque where
+  fmap f (Deque xs) = Deque $ Bifunc.second (fmap f) xs
+
 instance (Show a) => Show (Deque a) where
   showsPrec p xs =
     showParen (p > 10) $ showString "fromList " . shows (toList xs)
@@ -104,29 +101,71 @@ null _ = False
 size :: Deque a -> Integer
 size (Deque xs) = getSize . Base.measure $ xs
 
+{- Bidirectional pattern. See viewL and <| -}
+infixr 5 :<|
+
+pattern (:<|) ::
+  Ord a =>
+  a ->
+  Deque a ->
+  Deque a
+pattern x :<| xs <-
+  (viewL -> (x, xs))
+  where
+    x :<| xs = x <| xs
+
+{- Bidirectional pattern. See viewR and |> -}
+infixl 5 :|>
+
+pattern (:|>) ::
+  Ord a =>
+  Deque a ->
+  a ->
+  Deque a
+pattern xs :|> x <-
+  (viewR -> (xs, x))
+  where
+    xs :|> x = xs |> x
+
+{-# COMPLETE (:<|), Empty #-}
+
+{-# COMPLETE (:|>), Empty #-}
+
 {- O(n) -}
 toList :: Deque a -> [a]
 toList = foldr (:) []
 
--- {- See fromFoldable -}
--- fromList :: Ord a => [a] -> Set a
--- fromList = fromFoldable
+{- See fromFoldable -}
+fromList :: Ord a => [a] -> Deque a
+fromList = fromFoldable
 
--- {- See fromAscFoldable -}
--- fromAscList :: Eq a => [a] -> Set a
--- fromAscList = fromAscFoldable
+(<|) :: Ord a => a -> Deque a -> Deque a
+a <| (Deque xs) = Deque $ Elem a Base.:<| xs
 
--- {- See fromDescFoldable -}
--- fromDescList :: Eq a => [a] -> Set a
--- fromDescList = fromDescFoldable
+(|>) :: Ord a => Deque a -> a -> Deque a
+Deque xs |> a = Deque $ xs Base.:|> Elem a
 
--- {- See fromDistinctAscFoldable -}
--- fromDistinctAscList :: [a] -> Set a
--- fromDistinctAscList = fromDistinctAscFoldable
+viewL :: Ord a => Deque a -> (a, Deque a)
+viewL (Deque xs) = (getElem x, Deque xs')
+  where
+    x Base.:<| xs' = xs
 
--- {- See fromDistinctDescFoldable -}
--- fromDistinctDescList :: [a] -> Set a
--- fromDistinctDescList = fromDistinctDescFoldable
+viewR :: Ord a => Deque a -> (Deque a, a)
+viewR (Deque xs) = (Deque xs', getElem x)
+  where
+    xs' Base.:|> x = xs
+
+head :: Ord a => Deque a -> a
+head (x :<| _) = x
+
+tail :: Ord a => Deque a -> Deque a
+tail (_ :<| xs) = xs
+
+last :: Ord a => Deque a -> a
+last (_ :|> x) = x
+
+init :: Ord a => Deque a -> Deque a
+init (xs :|> _) = xs
 
 -- {- O(log(i)), where i <= n/2 is distance from
 --    insert point to nearest end -}
@@ -220,41 +259,9 @@ toList = foldr (:) []
 -- kthLargestElem :: Integer -> Set a -> Maybe a
 -- kthLargestElem k xs = kthSmallestElem (size xs - k + 1) xs
 
--- -- Generalized functions
--- {- O(nlog(n)) -}
--- fromFoldable :: (Foldable f, Ord a) => f a -> Set a
--- fromFoldable = foldr insert empty
-
--- {- O(n) -}
--- fromAscFoldable :: (Foldable f, Eq a) => f a -> Set a
--- fromAscFoldable =
---   Set . fst . foldr _maybeInsertElemLeft (Base.empty, Nothing)
---   where
---     _maybeInsertElemLeft a (_, Nothing) = (Base.singleton $ Elem a, Just a)
---     _maybeInsertElemLeft a acc@(xs, Just lastA) =
---       if a == lastA
---         then acc
---         else (Elem a Base.:<| xs, Just a)
-
--- {- O(n) -}
--- fromDescFoldable :: (Foldable f, Eq a) => f a -> Set a
--- fromDescFoldable =
---   Set . fst . foldr _maybeInsertElemRight (Base.empty, Nothing)
---   where
---     _maybeInsertElemRight a (_, Nothing) = (Base.singleton $ Elem a, Just a)
---     _maybeInsertElemRight a acc@(xs, Just lastA) =
---       if a == lastA
---         then acc
---         else (xs Base.:|> Elem a, Just a)
-
--- {- O(n) -}
--- fromDistinctAscFoldable :: Foldable f => f a -> Set a
--- fromDistinctAscFoldable = Set . foldr _insertElemLeft Base.empty
---   where
---     _insertElemLeft a xs = Elem a Base.:<| xs
-
--- {- O(n) -}
--- fromDistinctDescFoldable :: Foldable f => f a -> Set a
--- fromDistinctDescFoldable = Set . foldr _insertElemRight Base.empty
---   where
---     _insertElemRight a xs = xs Base.:|> Elem a
+-- Generalized functions
+{- O(nlog(n)) -}
+fromFoldable :: (Foldable f, Ord a) => f a -> Deque a
+fromFoldable = Deque . foldr _insertElemLeft Base.empty
+  where
+    _insertElemLeft a xs = Elem a Base.:<| xs
