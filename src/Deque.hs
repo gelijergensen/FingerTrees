@@ -38,11 +38,21 @@ module Deque
     scanr,
     scanr1,
     findIndicesL,
+    findIndexL,
     findIndicesR,
+    findIndexR,
     elemIndicesL,
     elemIndexL,
     elemIndicesR,
     elemIndexR,
+    breakl,
+    breakr,
+    spanl,
+    spanr,
+    takeWhileL,
+    takeWhileR,
+    dropWhileL,
+    dropWhileR,
   )
 where
 
@@ -370,17 +380,25 @@ findIndicesL p = foldrWithIndex f []
   where
     f i a idxs = if p a then i : idxs else idxs
 
+{- O(i), where i is the first matching index -}
+findIndexL :: (a -> Bool) -> Deque a -> Maybe Int
+findIndexL p = listToMaybe . findIndicesL p
+
 {- O(n) -}
 findIndicesR :: (a -> Bool) -> Deque a -> [Int]
 findIndicesR p = foldlWithIndex f []
   where
     f idxs i a = if p a then i : idxs else idxs
 
+{- O(i), where i is the first matching index -}
+findIndexR :: (a -> Bool) -> Deque a -> Maybe Int
+findIndexR p = listToMaybe . findIndicesR p
+
 {- O(n) -}
 elemIndicesL :: Eq a => a -> Deque a -> [Int]
 elemIndicesL a = findIndicesL (== a)
 
-{- O(n) -}
+{- O(i), where i is the first matching index -}
 elemIndexL :: Eq a => a -> Deque a -> Maybe Int
 elemIndexL a = listToMaybe . elemIndicesL a
 
@@ -388,6 +406,42 @@ elemIndexL a = listToMaybe . elemIndicesL a
 elemIndicesR :: Eq a => a -> Deque a -> [Int]
 elemIndicesR a = findIndicesR (== a)
 
-{- O(n) -}
+{- O(i), where i is the first matching index -}
 elemIndexR :: Eq a => a -> Deque a -> Maybe Int
 elemIndexR a = listToMaybe . elemIndicesR a
+
+{- O(i), where i is the first matching index -}
+breakl :: (a -> Bool) -> Deque a -> (Deque a, Deque a)
+breakl p xs = case findIndexL p xs of
+  Nothing -> (xs, Empty)
+  Just i -> splitAt i xs
+
+{- O(i), where i is the first matching index -}
+breakr :: (a -> Bool) -> Deque a -> (Deque a, Deque a)
+breakr p xs = case findIndexR p xs of
+  Nothing -> (xs, Empty)
+  Just i -> splitAt (i + 1) xs
+
+{- O(i), where i is the first matching index -}
+spanl :: (a -> Bool) -> Deque a -> (Deque a, Deque a)
+spanl p = breakl (not . p)
+
+{- O(i), where i is the first matching index -}
+spanr :: (a -> Bool) -> Deque a -> (Deque a, Deque a)
+spanr p = breakr (not . p)
+
+{- O(i), where i is the first matching index -}
+takeWhileL :: (a -> Bool) -> Deque a -> Deque a
+takeWhileL p = fst . spanl p
+
+{- O(i), where i is the first matching index -}
+takeWhileR :: (a -> Bool) -> Deque a -> Deque a
+takeWhileR p = fst . spanr p
+
+{- O(i), where i is the first matching index -}
+dropWhileL :: (a -> Bool) -> Deque a -> Deque a
+dropWhileL p = snd . spanl p
+
+{- O(i), where i is the first matching index -}
+dropWhileR :: (a -> Bool) -> Deque a -> Deque a
+dropWhileR p = snd . spanr p
