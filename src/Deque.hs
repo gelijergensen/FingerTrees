@@ -12,6 +12,7 @@ module Deque
     length,
     toList,
     fromList,
+    fromFoldable,
     head,
     tail,
     last,
@@ -19,14 +20,16 @@ module Deque
     lookup,
     (!?),
     index,
-    fromFoldable,
+    drop,
+    take,
+    splitAt,
   )
 where
 
 import qualified Data.Bifunctor as Bifunc
 import Data.Maybe (fromJust)
 import qualified FingerTree as Base
-import Prelude hiding (head, init, last, length, lookup, null, tail)
+import Prelude hiding (drop, head, init, last, length, lookup, null, splitAt, tail, take)
 
 newtype Size = Size
   { getSize :: Int
@@ -128,6 +131,12 @@ toList = foldr (:) []
 fromList :: [a] -> Deque a
 fromList = fromFoldable
 
+{- O(nlog(n)) -}
+fromFoldable :: Foldable f => f a -> Deque a
+fromFoldable = Deque . foldr _insertElemLeft Base.empty
+  where
+    _insertElemLeft a xs = Elem a Base.:<| xs
+
 (<|) :: a -> Deque a -> Deque a
 a <| (Deque xs) = Deque $ Elem a Base.:<| xs
 
@@ -171,7 +180,7 @@ init (xs :|> _) = xs
 lookup :: Int -> Deque a -> Maybe a
 lookup i (Deque xs)
   | i < 0 = Nothing
-  | otherwise = getElem <$> Base.lookup (Size (i + 1) <=) xs
+  | otherwise = getElem <$> Base.lookup (Size i <) xs
 
 {- O(log(min(i, n-i))) -}
 (!?) :: Deque a -> Int -> Maybe a
@@ -182,11 +191,18 @@ index :: Deque a -> Int -> a
 index xs@(Deque xs') i
   | i < 0 || i >= length xs =
     error $ "Index out of bounds in call to: Deque.index " ++ show i
-  | otherwise = getElem . fromJust $ Base.lookup (Size (i + 1) <=) xs'
+  | otherwise = getElem . fromJust $ Base.lookup (Size i <) xs'
 
--- Generalized functions
-{- O(nlog(n)) -}
-fromFoldable :: Foldable f => f a -> Deque a
-fromFoldable = Deque . foldr _insertElemLeft Base.empty
+{- O(log(min(i, n-i))) -}
+take :: Int -> Deque a -> Deque a
+take i = fst . splitAt i
+
+{- O(log(min(i, n-i))) -}
+drop :: Int -> Deque a -> Deque a
+drop i = snd . splitAt i
+
+{- O(log(min(i, n-i))) -}
+splitAt :: Int -> Deque a -> (Deque a, Deque a)
+splitAt i (Deque xs) = (Deque l, Deque r)
   where
-    _insertElemLeft a xs = Elem a Base.:<| xs
+    (l, r) = Base.split (Size i <) xs
