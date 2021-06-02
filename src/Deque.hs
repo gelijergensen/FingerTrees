@@ -53,6 +53,8 @@ module Deque
     takeWhileR,
     dropWhileL,
     dropWhileR,
+    partition,
+    filter,
   )
 where
 
@@ -63,12 +65,14 @@ import Data.Traversable (mapAccumL, mapAccumR)
 import qualified FingerTree as Base
 import Prelude hiding
   ( drop,
+    filter,
     head,
     init,
     last,
     length,
     lookup,
     null,
+    partition,
     scanl,
     scanl1,
     scanr,
@@ -445,3 +449,15 @@ dropWhileL p = snd . spanl p
 {- O(i), where i is the first matching index -}
 dropWhileR :: (a -> Bool) -> Deque a -> Deque a
 dropWhileR p = snd . spanr p
+
+{- O(n) -}
+partition :: (a -> Bool) -> Deque a -> (Deque a, Deque a)
+partition p = foldr f (Empty, Empty)
+  where
+    f a (xs, ys) = if p a then (a :<| xs, ys) else (xs, a :<| ys)
+
+{- O(n) -}
+filter :: (a -> Bool) -> Deque a -> Deque a
+filter p = foldr f Empty
+  where
+    f a xs = if p a then a :<| xs else xs
