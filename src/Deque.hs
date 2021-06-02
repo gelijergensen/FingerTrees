@@ -55,6 +55,9 @@ module Deque
     dropWhileR,
     partition,
     filter,
+    zip,
+    zipWith,
+    unzip,
   )
 where
 
@@ -80,6 +83,9 @@ import Prelude hiding
     splitAt,
     tail,
     take,
+    unzip,
+    zip,
+    zipWith,
   )
 
 newtype Size = Size
@@ -461,3 +467,20 @@ filter :: (a -> Bool) -> Deque a -> Deque a
 filter p = foldr f Empty
   where
     f a xs = if p a then a :<| xs else xs
+
+{- O(min(n, m)) -}
+zip :: Deque a -> Deque b -> Deque (a, b)
+zip Empty _ = Empty
+zip _ Empty = Empty
+zip (a :<| as) (b :<| bs) = (a, b) :<| zip as bs
+
+{- O(min(n, m)) -}
+zipWith :: (a -> b -> c) -> Deque a -> Deque b -> Deque c
+zipWith f Empty _ = Empty
+zipWith f _ Empty = Empty
+zipWith f (a :<| as) (b :<| bs) = f a b :<| zipWith f as bs
+
+unzip :: Deque (a, b) -> (Deque a, Deque b)
+unzip = foldr f (Empty, Empty)
+  where
+    f (a, b) (as, bs) = (a :<| as, b :<| bs)
