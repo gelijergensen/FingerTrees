@@ -20,6 +20,8 @@ module Deque
     lookup,
     (!?),
     index,
+    adjust,
+    update,
     drop,
     take,
     splitAt,
@@ -192,6 +194,18 @@ index xs@(Deque xs') i
   | i < 0 || i >= length xs =
     error $ "Index out of bounds in call to: Deque.index " ++ show i
   | otherwise = getElem . fromJust $ Base.lookup (Size i <) xs'
+
+adjust :: (a -> a) -> Int -> Deque a -> Deque a
+adjust f i (Deque xs) = Deque $ Base.modify f' (Size i <) xs
+  where
+    f' Nothing = []
+    f' (Just x) = [fmap f x]
+
+update :: Int -> a -> Deque a -> Deque a
+update i a (Deque xs) = Deque $ Base.modify f (Size i <) xs
+  where
+    f Nothing = []
+    f _ = [Elem a]
 
 {- O(log(min(i, n-i))) -}
 take :: Int -> Deque a -> Deque a
