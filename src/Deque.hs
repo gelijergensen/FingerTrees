@@ -13,6 +13,7 @@ module Deque
     toList,
     fromList,
     fromFoldable,
+    (><),
     head,
     tail,
     last,
@@ -27,12 +28,27 @@ module Deque
     drop,
     take,
     splitAt,
+    foldMapWithIndex,
+    foldlWithIndex,
+    foldrWithIndex,
+    mapWithIndex,
+    traverseWithIndex,
+    scanl,
+    scanl1,
+    scanr,
+    scanr1,
+    findIndicesL,
+    findIndicesR,
+    elemIndicesL,
+    elemIndexL,
+    elemIndicesR,
+    elemIndexR,
   )
 where
 
 import Control.Applicative (liftA2)
 import qualified Data.Bifunctor as Bifunc
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, listToMaybe)
 import Data.Traversable (mapAccumL, mapAccumR)
 import qualified FingerTree as Base
 import Prelude hiding
@@ -259,21 +275,25 @@ index xs@(Deque xs') i
     error $ "Index out of bounds in call to: Deque.index " ++ show i
   | otherwise = getElem . fromJust $ Base.lookup (Size i <) xs'
 
+{- O(log(min(i, n-i))) -}
 adjustAt :: Int -> (a -> a) -> Deque a -> Deque a
 adjustAt i f (Deque xs) = Deque $ Base.modify f' (Size i <) xs
   where
     f' Nothing = []
     f' (Just x) = [fmap f x]
 
+{- O(log(min(i, n-i))) -}
 insertAt :: Int -> a -> Deque a -> Deque a
 insertAt i a (Deque xs) = Deque $ Base.modify f (Size i <) xs
   where
     f Nothing = [Elem a]
     f (Just x) = [Elem a, x]
 
+{- O(log(min(i, n-i))) -}
 deleteAt :: Int -> Deque a -> Deque a
 deleteAt i (Deque xs) = Deque $ Base.modify (const []) (Size i <) xs
 
+{- O(log(min(i, n-i))) -}
 updateAt :: Int -> a -> Deque a -> Deque a
 updateAt i a (Deque xs) = Deque $ Base.modify f (Size i <) xs
   where
@@ -294,48 +314,80 @@ splitAt i (Deque xs) = (Deque l, Deque r)
   where
     (l, r) = Base.split (Size i <) xs
 
+{- O(n) -}
 foldMapWithIndex :: Monoid m => (Int -> a -> m) -> Deque a -> m
 foldMapWithIndex f = foldMap (uncurry f) . snd . mapAccumL withIndex 0
   where
     withIndex i x = (i + 1, (i, x))
 
+{- O(n) -}
 foldlWithIndex :: (b -> Int -> a -> b) -> b -> Deque a -> b
 foldlWithIndex f z xs = fst $ foldl f' (z, 0) xs
   where
     f' (b, i) a = (f b i a, i + 1)
 
+{- O(n) -}
 foldrWithIndex :: (Int -> a -> b -> b) -> b -> Deque a -> b
-foldrWithIndex f z xs = fst $ foldr f' (z, 0) xs
+foldrWithIndex f z xs = fst $ foldr f' (z, length xs - 1) xs
   where
-    f' a (b, i) = (f i a b, i + 1)
+    f' a (b, i) = (f i a b, i - 1)
 
+{- O(n) -}
 mapWithIndex :: (Int -> a -> b) -> Deque a -> Deque b
 mapWithIndex f = snd . mapAccumL f' 0
   where
     f' i x = (i + 1, f i x)
 
+{- O(n) -}
 traverseWithIndex :: Applicative f => (Int -> a -> f b) -> Deque a -> f (Deque b)
 traverseWithIndex f = traverse (uncurry f) . snd . mapAccumL withIndex 0
   where
     withIndex i x = (i + 1, (i, x))
 
+{- O(n) -}
 scanl :: (b -> a -> b) -> b -> Deque a -> Deque b
 scanl f z0 as = z0 :<| snd (mapAccumL (\z a -> let b = f z a in (b, b)) z0 as)
 
+{- O(n) -}
 scanl1 :: (a -> a -> a) -> Deque a -> Deque a
 scanl1 f xs = case viewL xs of
   NilL -> error "Empty deque encountered in call to Deque.scanl1"
   ConsL x xs' -> scanl f x xs'
 
+{- O(n) -}
 scanr :: (a -> b -> b) -> b -> Deque a -> Deque b
 scanr f z0 as = snd (mapAccumR (\z a -> let b = f a z in (b, b)) z0 as) :|> z0
 
+{- O(n) -}
 scanr1 :: (a -> a -> a) -> Deque a -> Deque a
 scanr1 f xs = case viewR xs of
   NilR -> error "Empty deque encountered in call to Deque.scanr1"
   ConsR xs' x -> scanr f x xs'
 
--- {- O(n) -}
--- findIndicesL :: (a -> Bool) -> Deque a -> [Int]
--- findIndicesL p xs = viewL xs
---   where
+{- O(n) -}
+findIndicesL :: (a -> Bool) -> Deque a -> [Int]
+findIndicesL p = foldrWithIndex f []
+  where
+    f i a idxs = if p a then i : idxs else idxs
+
+{- O(n) -}
+findIndicesR :: (a -> Bool) -> Deque a -> [Int]
+findIndicesR p = foldlWithIndex f []
+  where
+    f idxs i a = if p a then i : idxs else idxs
+
+{- O(n) -}
+elemIndicesL :: Eq a => a -> Deque a -> [Int]
+elemIndicesL a = findIndicesL (== a)
+
+{- O(n) -}
+elemIndexL :: Eq a => a -> Deque a -> Maybe Int
+elemIndexL a = listToMaybe . elemIndicesL a
+
+{- O(n) -}
+elemIndicesR :: Eq a => a -> Deque a -> [Int]
+elemIndicesR a = findIndicesR (== a)
+
+{- O(n) -}
+elemIndexR :: Eq a => a -> Deque a -> Maybe Int
+elemIndexR a = listToMaybe . elemIndicesR a
