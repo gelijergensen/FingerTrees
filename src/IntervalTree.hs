@@ -18,16 +18,19 @@ module IntervalTree
     insert,
     delete,
     member,
+    -- map,
+    mapMonotonic,
     interval, --todo remove this
     intervals, --todo remove this!
   )
 where
 
 import qualified CommonTypes as Common
+import qualified Data.Bifunctor as Bifunc
 import Data.Maybe (maybeToList)
 import qualified FingerTree as Base
 import qualified OrdSeq
-import Prelude hiding (null)
+import Prelude hiding (map, null)
 
 data Interval a = Interval
   { low :: a,
@@ -109,7 +112,7 @@ size (IntervalTree xs) = size' xs
 toList :: IntervalTree a -> [Interval a]
 toList (IntervalTree xs) = concatMap _toList xs
   where
-    _toList x = map (Interval (lowElem x)) . OrdSeq.toList $ highElems x
+    _toList x = fmap (Interval (lowElem x)) . OrdSeq.toList $ highElems x
 
 {- See fromFoldable -}
 fromList :: Ord a => [Interval a] -> IntervalTree a
@@ -189,6 +192,16 @@ member a (IntervalTree xs) =
     Nothing -> False
     Just x -> high a `OrdSeq.member` highElems x
 
+{- O(nlog(n)) -}
+map :: (Ord a, Ord b) => (a -> b) -> IntervalTree a -> IntervalTree b
+map f = fromList . fmap (mapInterval f) . toList
+
+{- O(n). Does not check for monotonicity (that x < y => f x < f y) -}
+mapMonotonic :: (Ord a, Ord b) => (a -> b) -> IntervalTree a -> IntervalTree b
+mapMonotonic f (IntervalTree xs) =
+  IntervalTree $
+    Bifunc.bimap (mapSizeLastMaxMonotonic f) (mapIntervalElemMonotonic f) xs
+
 -- Helper functions
 size' ::
   forall a. Ord a => Base.FingerTree (SizeLastMax a) (IntervalElem a) -> Int
@@ -216,6 +229,27 @@ deleteHighElem a x = case OrdSeq.delete (high a) $ highElems x of
   OrdSeq.Empty -> Nothing
   highElems' ->
     Just $ IntervalElem {lowElem = lowElem x, highElems = highElems'}
+
+mapInterval :: Ord b => (a -> b) -> Interval a -> Interval b
+mapInterval f x =
+  let b1 = f $ low x
+      b2 = f $ high x
+   in Interval (min b1 b2) (max b1 b2)
+
+mapSizeLastMaxMonotonic :: (a -> b) -> SizeLastMax a -> SizeLastMax b
+mapSizeLastMaxMonotonic f x =
+  SizeLastMax
+    { getSize = getSize x,
+      getLast = f <$> getLast x,
+      getMax = f <$> getMax x
+    }
+
+mapIntervalElemMonotonic :: (Ord a, Ord b) => (a -> b) -> IntervalElem a -> IntervalElem b
+mapIntervalElemMonotonic f x =
+  IntervalElem
+    { lowElem = f $ lowElem x,
+      highElems = OrdSeq.mapMonotonic f $ highElems x
+    }
 
 -- todo remove this!
 intervals :: Ord a => [a] -> [a] -> [Interval a]

@@ -212,11 +212,11 @@ member a (OrdSeq xs) =
     Just (Elem x) -> a == x
 
 {- O(nlog(n)) -}
-map :: (Ord a, Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
+map :: (Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
 map f = fromList . fmap f . toList
 
 {- O(n). Does not check for monotonicity (that x < y => f x < f y) -}
-mapMonotonic :: (Ord a, Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
+mapMonotonic :: (Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
 mapMonotonic f (OrdSeq xs) = OrdSeq $ Bifunc.bimap (fmap f) (fmap f) xs
 
 {- Probably amortized O(m log(n/m + 1),
