@@ -266,7 +266,8 @@ index :: OrdSeq a -> Int -> a
 index xs@(OrdSeq xs') i
   | i < 0 || i >= length xs =
     error $ "Index out of bounds in call to: OrdSeq.index " ++ show i
-  | otherwise = unElem . fromJust $ Base.lookup ((Common.Size i <) . getSize) xs'
+  | otherwise =
+    unElem . fromJust $ Base.lookup ((Common.Size i <) . getSize) xs'
 
 {- O(log(min(i, n-i))) -}
 take :: Int -> OrdSeq a -> OrdSeq a

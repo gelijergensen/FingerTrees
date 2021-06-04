@@ -191,7 +191,8 @@ insert a (MultiSet xs) =
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 deleteOnce :: (Ord a) => a -> MultiSet a -> MultiSet a
-deleteOnce a (MultiSet xs) = MultiSet $ Base.modify (_deleteOnce a) ((Common.Last a <=) . getLast) xs
+deleteOnce a (MultiSet xs) =
+  MultiSet $ Base.modify (_deleteOnce a) ((Common.Last a <=) . getLast) xs
   where
     _deleteOnce a Nothing = []
     _deleteOnce a (Just x) =
@@ -202,7 +203,8 @@ deleteOnce a (MultiSet xs) = MultiSet $ Base.modify (_deleteOnce a) ((Common.Las
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 deleteEach :: (Ord a) => a -> MultiSet a -> MultiSet a
-deleteEach a (MultiSet xs) = MultiSet $ Base.modify (_deleteEach a) ((Common.Last a <=) . getLast) xs
+deleteEach a (MultiSet xs) =
+  MultiSet $ Base.modify (_deleteEach a) ((Common.Last a <=) . getLast) xs
   where
     _deleteEach a Nothing = []
     _deleteEach a (Just x) = [x | a /= unMultiElem x]
@@ -278,13 +280,15 @@ smallestElem (MultiSet xs) =
 kthSmallestElem :: Int -> MultiSet a -> Maybe a
 kthSmallestElem k (MultiSet xs)
   | k < 1 = Nothing
-  | otherwise = unMultiElem <$> Base.lookup ((Common.Size k <=) . cardinality) xs
+  | otherwise =
+    unMultiElem <$> Base.lookup ((Common.Size k <=) . cardinality) xs
 
 {- O(log(min(k, n-k))) -}
 kthSmallestUniqueElem :: Int -> MultiSet a -> Maybe a
 kthSmallestUniqueElem k (MultiSet xs)
   | k < 1 = Nothing
-  | otherwise = unMultiElem <$> Base.lookup ((Common.Size k <=) . supportSize) xs
+  | otherwise =
+    unMultiElem <$> Base.lookup ((Common.Size k <=) . supportSize) xs
 
 {- O(1) -}
 largestElem :: MultiSet a -> Maybe a

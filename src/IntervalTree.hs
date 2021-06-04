@@ -16,13 +16,15 @@ module IntervalTree
     fromAscFoldable,
     fromDescFoldable,
     insert,
-    -- delete,
+    delete,
+    member,
     interval, --todo remove this
     intervals, --todo remove this!
   )
 where
 
 import qualified CommonTypes as Common
+import Data.Maybe (maybeToList)
 import qualified FingerTree as Base
 import qualified OrdSeq
 import Prelude hiding (null)
@@ -45,7 +47,8 @@ data IntervalElem a = IntervalElem
     highElems :: OrdSeq.OrdSeq a
   }
 
-newtype IntervalTree a = IntervalTree (Base.FingerTree (SizeLastMax a) (IntervalElem a))
+newtype IntervalTree a
+  = IntervalTree (Base.FingerTree (SizeLastMax a) (IntervalElem a))
 
 instance Ord a => Semigroup (SizeLastMax a) where
   x <> y =
@@ -169,25 +172,26 @@ insert a (IntervalTree xs) =
         then [insertHighElem a x]
         else [intervalElem a, x]
 
--- {- O(log(i)), where i <= n/2 is distance from
---    delete point to nearest end -}
--- delete :: (Ord a) => Interval a -> IntervalTree a -> IntervalTree a
--- delete a (IntervalTree xs) =
---   IntervalTree $ Base.modify (_delete a) ((Common.Last (low a) <=) . getLast) xs
---   where
---     _delete a Nothing = []
---     _delete a (Just x) = [x | a /= x]
+{- O(log(i)), where i <= n/2 is distance from
+   delete point to nearest end -}
+delete :: (Ord a) => Interval a -> IntervalTree a -> IntervalTree a
+delete a (IntervalTree xs) =
+  IntervalTree $ Base.modify (_delete a) ((Common.Last (low a) <=) . getLast) xs
+  where
+    _delete a Nothing = []
+    _delete a (Just x) = maybeToList $ deleteHighElem a x
 
--- {- O(log(i)), where i <= n/2 is distance from
---    member location to nearest end -}
--- member :: (Ord a) => Interval a -> IntervalTree a -> Bool
--- member a (IntervalTree xs) =
---   case Base.lookup ((Common.Last (low a) <=) . getLast) xs of
---     Nothing -> False
---     Just (Elem x) -> a == x
+{- O(log(i)), where i <= n/2 is distance from
+   member location to nearest end -}
+member :: (Ord a) => Interval a -> IntervalTree a -> Bool
+member a (IntervalTree xs) =
+  case Base.lookup ((Common.Last (low a) <=) . getLast) xs of
+    Nothing -> False
+    Just x -> high a `OrdSeq.member` highElems x
 
 -- Helper functions
-size' :: forall a. Ord a => Base.FingerTree (SizeLastMax a) (IntervalElem a) -> Int
+size' ::
+  forall a. Ord a => Base.FingerTree (SizeLastMax a) (IntervalElem a) -> Int
 size' xs =
   let meas = Base.measure xs :: SizeLastMax a
    in Common.unSize . getSize $ meas
@@ -206,7 +210,12 @@ insertHighElem a x =
       highElems = OrdSeq.insert (high a) $ highElems x
     }
 
--- deleteHighElem :: Ord a => Interval a -> IntervalElem a -> Maybe (IntervalElem a)
+deleteHighElem ::
+  Ord a => Interval a -> IntervalElem a -> Maybe (IntervalElem a)
+deleteHighElem a x = case OrdSeq.delete (high a) $ highElems x of
+  OrdSeq.Empty -> Nothing
+  highElems' ->
+    Just $ IntervalElem {lowElem = lowElem x, highElems = highElems'}
 
 -- todo remove this!
 intervals :: Ord a => [a] -> [a] -> [Interval a]

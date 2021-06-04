@@ -363,7 +363,8 @@ mapWithIndex f = snd . mapAccumL f' 0
     f' i x = (i + 1, f i x)
 
 {- O(n) -}
-traverseWithIndex :: Applicative f => (Int -> a -> f b) -> Deque a -> f (Deque b)
+traverseWithIndex ::
+  Applicative f => (Int -> a -> f b) -> Deque a -> f (Deque b)
 traverseWithIndex f = traverse (uncurry f) . snd . mapAccumL withIndex 0
   where
     withIndex i x = (i + 1, (i, x))
