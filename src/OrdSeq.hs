@@ -35,13 +35,29 @@ module OrdSeq
     fromDescFoldable,
     foldlWithIndex,
     foldrWithIndex,
+    findIndicesL,
+    findIndexL,
+    findIndicesR,
+    findIndexR,
+    elemIndicesL,
+    elemIndexL,
+    elemIndicesR,
+    elemIndexR,
+    breakl,
+    breakr,
+    spanl,
+    spanr,
+    takeWhileL,
+    takeWhileR,
+    dropWhileL,
+    dropWhileR,
   )
 where
 
 import qualified CommonTypes as Common
 import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, listToMaybe)
 import qualified FingerTree as Base
 import Prelude hiding (drop, head, init, last, lookup, map, null, splitAt, tail, take)
 
@@ -220,7 +236,7 @@ lookup i (OrdSeq xs)
 index :: OrdSeq a -> Int -> a
 index xs@(OrdSeq xs') i
   | i < 0 || i >= length xs =
-    error $ "Index out of bounds in call to: Deque.index " ++ show i
+    error $ "Index out of bounds in call to: OrdSeq.index " ++ show i
   | otherwise = unElem . fromJust $ Base.lookup ((Common.Size i <) . getSize) xs'
 
 {- O(log(min(i, n-i))) -}
@@ -236,6 +252,78 @@ splitAt :: Int -> OrdSeq a -> (OrdSeq a, OrdSeq a)
 splitAt i (OrdSeq xs) = (OrdSeq l, OrdSeq r)
   where
     (l, r) = Base.split ((Common.Size i <) . getSize) xs
+
+{- O(n) -}
+findIndicesL :: (a -> Bool) -> OrdSeq a -> [Int]
+findIndicesL p = foldrWithIndex f []
+  where
+    f i a idxs = if p a then i : idxs else idxs
+
+{- O(i), where i is the first matching index -}
+findIndexL :: (a -> Bool) -> OrdSeq a -> Maybe Int
+findIndexL p = listToMaybe . findIndicesL p
+
+{- O(n) -}
+findIndicesR :: (a -> Bool) -> OrdSeq a -> [Int]
+findIndicesR p = foldlWithIndex f []
+  where
+    f idxs i a = if p a then i : idxs else idxs
+
+{- O(i), where i is the first matching index -}
+findIndexR :: (a -> Bool) -> OrdSeq a -> Maybe Int
+findIndexR p = listToMaybe . findIndicesR p
+
+{- O(n) -}
+elemIndicesL :: Eq a => a -> OrdSeq a -> [Int]
+elemIndicesL a = findIndicesL (== a)
+
+{- O(i), where i is the first matching index -}
+elemIndexL :: Eq a => a -> OrdSeq a -> Maybe Int
+elemIndexL a = listToMaybe . elemIndicesL a
+
+{- O(n) -}
+elemIndicesR :: Eq a => a -> OrdSeq a -> [Int]
+elemIndicesR a = findIndicesR (== a)
+
+{- O(i), where i is the first matching index -}
+elemIndexR :: Eq a => a -> OrdSeq a -> Maybe Int
+elemIndexR a = listToMaybe . elemIndicesR a
+
+{- O(i), where i is the first matching index -}
+breakl :: (a -> Bool) -> OrdSeq a -> (OrdSeq a, OrdSeq a)
+breakl p xs = case findIndexL p xs of
+  Nothing -> (xs, Empty)
+  Just i -> splitAt i xs
+
+{- O(i), where i is the first matching index -}
+breakr :: (a -> Bool) -> OrdSeq a -> (OrdSeq a, OrdSeq a)
+breakr p xs = case findIndexR p xs of
+  Nothing -> (xs, Empty)
+  Just i -> splitAt (i + 1) xs
+
+{- O(i), where i is the first matching index -}
+spanl :: (a -> Bool) -> OrdSeq a -> (OrdSeq a, OrdSeq a)
+spanl p = breakl (not . p)
+
+{- O(i), where i is the first matching index -}
+spanr :: (a -> Bool) -> OrdSeq a -> (OrdSeq a, OrdSeq a)
+spanr p = breakr (not . p)
+
+{- O(i), where i is the first matching index -}
+takeWhileL :: (a -> Bool) -> OrdSeq a -> OrdSeq a
+takeWhileL p = fst . spanl p
+
+{- O(i), where i is the first matching index -}
+takeWhileR :: (a -> Bool) -> OrdSeq a -> OrdSeq a
+takeWhileR p = fst . spanr p
+
+{- O(i), where i is the first matching index -}
+dropWhileL :: (a -> Bool) -> OrdSeq a -> OrdSeq a
+dropWhileL p = snd . spanl p
+
+{- O(i), where i is the first matching index -}
+dropWhileR :: (a -> Bool) -> OrdSeq a -> OrdSeq a
+dropWhileR p = snd . spanr p
 
 -- Generalized functions
 {- O(nlog(n)) -}
