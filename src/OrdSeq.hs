@@ -188,7 +188,8 @@ fromDescList = fromDescFoldable
 {- O(log(i)), where i <= n/2 is distance from
    insert point to nearest end -}
 insert :: (Ord a) => a -> OrdSeq a -> OrdSeq a
-insert a (OrdSeq xs) = OrdSeq $ Base.modify (_insert a) ((Common.Last a <=) . getLast) xs
+insert a (OrdSeq xs) =
+  OrdSeq $ Base.modify (_insert a) ((Common.Last a <=) . getLast) xs
   where
     _insert a Nothing = [Elem a]
     _insert a (Just x) = [Elem a, x]
@@ -196,7 +197,8 @@ insert a (OrdSeq xs) = OrdSeq $ Base.modify (_insert a) ((Common.Last a <=) . ge
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 delete :: (Ord a) => a -> OrdSeq a -> OrdSeq a
-delete a (OrdSeq xs) = OrdSeq $ Base.modify (_delete a) ((Common.Last a <=) . getLast) xs
+delete a (OrdSeq xs) =
+  OrdSeq $ Base.modify (_delete a) ((Common.Last a <=) . getLast) xs
   where
     _delete a Nothing = []
     _delete a (Just x) = [x | a /= unElem x]
