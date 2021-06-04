@@ -3,7 +3,6 @@ An implementation of 2-3 Finger Trees as in Hinze &amp; Paterson 2006 with appli
 
 ## TODO:
 
-1. Priority Queue
-2. Ordered Sequences (actually just a slight retooling of Set/MultiSet)
-3. Interval Tree
-4. Testing
+1. Interval Tree
+2. Testing
+3. Fill out README

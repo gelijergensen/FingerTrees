@@ -89,12 +89,12 @@ import Prelude hiding
   )
 
 newtype Size = Size
-  { getSize :: Int
+  { unSize :: Int
   }
   deriving (Eq, Ord, Show)
 
 newtype Elem a = Elem
-  { getElem :: a
+  { unElem :: a
   }
   deriving (Eq, Show)
 
@@ -119,12 +119,12 @@ instance Monoid Size where
   mempty = Size 0
 
 instance Foldable Elem where
-  foldr f z x = f (getElem x) z
+  foldr f z x = f (unElem x) z
 
 instance Functor Elem where
   fmap f x =
     Elem
-      { getElem = f $ getElem x
+      { unElem = f $ unElem x
       }
 
 instance Base.Measured (Elem a) Size where
@@ -133,10 +133,10 @@ instance Base.Measured (Elem a) Size where
 instance Foldable Deque where
   foldr f z (Deque xs) = foldr f' z xs
     where
-      f' a b = f (getElem a) b
+      f' a b = f (unElem a) b
   foldl f z (Deque xs) = foldl f' z xs
     where
-      f' a b = f a (getElem b)
+      f' a b = f a (unElem b)
 
 instance Functor Deque where
   fmap f (Deque xs) = Deque $ Bifunc.second (fmap f) xs
@@ -195,7 +195,7 @@ null _ = False
 
 {- O(1) -}
 length :: Deque a -> Int
-length (Deque xs) = getSize . Base.measure $ xs
+length (Deque xs) = unSize . Base.measure $ xs
 
 {- Bidirectional pattern. See viewL and <| -}
 infixr 5 :<|
@@ -255,12 +255,12 @@ infixr 5 ><
 viewL :: Deque a -> ViewL a
 viewL (Deque xs) = case xs of
   Base.Empty -> NilL
-  x Base.:<| xs' -> ConsL (getElem x) (Deque xs')
+  x Base.:<| xs' -> ConsL (unElem x) (Deque xs')
 
 viewR :: Deque a -> ViewR a
 viewR (Deque xs) = case xs of
   Base.Empty -> NilR
-  xs' Base.:|> x -> ConsR (Deque xs') (getElem x)
+  xs' Base.:|> x -> ConsR (Deque xs') (unElem x)
 
 {- O(1) -}
 head :: Deque a -> a
@@ -282,7 +282,7 @@ init (xs :|> _) = xs
 lookup :: Int -> Deque a -> Maybe a
 lookup i (Deque xs)
   | i < 0 = Nothing
-  | otherwise = getElem <$> Base.lookup (Size i <) xs
+  | otherwise = unElem <$> Base.lookup (Size i <) xs
 
 {- O(log(min(i, n-i))) -}
 (!?) :: Deque a -> Int -> Maybe a
@@ -293,7 +293,7 @@ index :: Deque a -> Int -> a
 index xs@(Deque xs') i
   | i < 0 || i >= length xs =
     error $ "Index out of bounds in call to: Deque.index " ++ show i
-  | otherwise = getElem . fromJust $ Base.lookup (Size i <) xs'
+  | otherwise = unElem . fromJust $ Base.lookup (Size i <) xs'
 
 {- O(log(min(i, n-i))) -}
 adjustAt :: Int -> (a -> a) -> Deque a -> Deque a

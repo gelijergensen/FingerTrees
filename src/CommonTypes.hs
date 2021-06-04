@@ -1,10 +1,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module SetHelper where
+module CommonTypes where
 
 import Data.Function (on)
 import qualified FingerTree as Base
+
+data Last a
+  = NoLast
+  | Last a
+  deriving (Eq, Ord, Show)
 
 data Max a
   = NegInfinity
@@ -12,15 +17,27 @@ data Max a
   deriving (Eq, Ord, Show)
 
 newtype Size = Size
-  { unSize :: Integer
+  { unSize :: Int
   }
   deriving (Eq, Ord, Show)
 
-instance Semigroup (Max a) where
-  x <> NegInfinity = x
+instance Semigroup (Last a) where
+  x <> NoLast = x
   _ <> x = x
 
-instance Monoid (Max a) where
+instance Monoid (Last a) where
+  mempty = NoLast
+
+instance Functor Last where
+  fmap _ NoLast = NoLast
+  fmap f (Last x) = Last $ f x
+
+instance Ord a => Semigroup (Max a) where
+  x <> NegInfinity = x
+  NegInfinity <> x = x
+  Max x <> Max y = Max $ x `max` y
+
+instance Ord a => Monoid (Max a) where
   mempty = NegInfinity
 
 instance Functor Max where
@@ -131,7 +148,7 @@ areDisjointWith fMeas as (b Base.:<| bs') =
 
 isSubsetOfWith ::
   (Base.Measured a v, Eq a, Ord w) =>
-  (Base.FingerTree v a -> Integer) ->
+  (Base.FingerTree v a -> Int) ->
   (a -> a -> Bool) ->
   (v -> w) ->
   Base.FingerTree v a ->
@@ -153,7 +170,7 @@ isSubsetOfWith fSize fLeq fMeas as bs@(b Base.:<| bs') =
 
 isSupsetOfWith ::
   (Base.Measured a v, Eq a, Ord w) =>
-  (Base.FingerTree v a -> Integer) ->
+  (Base.FingerTree v a -> Int) ->
   (a -> a -> Bool) ->
   (v -> w) ->
   Base.FingerTree v a ->

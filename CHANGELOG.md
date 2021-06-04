@@ -1,5 +1,9 @@
 # Revision history for FingerTrees
 
+## 0.1.3.0 -- 2021-06-04
+
+* Added implementation for OrdSeq
+
 ## 0.1.2.0 -- 2021-06-02
 
 * Added implementation for Deques
