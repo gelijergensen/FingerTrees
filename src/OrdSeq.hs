@@ -19,13 +19,11 @@ module OrdSeq
     member,
     map,
     mapMonotonic,
-    -- union,
-    -- intersection,
-    -- difference,
-    -- areDisjoint,
-    -- isSubsetOf,
-    -- isSupsetOf,
-    -- support,
+    (><),
+    head,
+    tail,
+    last,
+    init,
     -- smallestElem,
     -- kthSmallestElem,
     -- kthSmallestUniqueElem,
@@ -44,7 +42,7 @@ import qualified CommonTypes as Common
 import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
 import qualified FingerTree as Base
-import Prelude hiding (map, null)
+import Prelude hiding (head, init, last, map, null, tail)
 
 data SizeLast a = SizeLast
   { getSize :: Common.Size, -- sum of all multiplicities
@@ -175,6 +173,38 @@ map f = fromList . fmap f . toList
 mapMonotonic :: (Ord a, Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
 mapMonotonic f (OrdSeq xs) = OrdSeq $ Bifunc.bimap (fmap f) (fmap f) xs
 
+{- Probably amortized O(m log(n/m + 1),
+   where m <= n lengths of xs and ys -}
+infixr 5 ><
+
+(><) :: Ord a => OrdSeq a -> OrdSeq a -> OrdSeq a
+(OrdSeq xs) >< (OrdSeq ys) = OrdSeq $ merge xs ys
+  where
+    merge Base.Empty bs = bs
+    merge as Base.Empty = as
+    merge as bs@(b Base.:<| bs') = case r of
+      Base.Empty -> l Base.>< bs
+      a Base.:<| r' ->
+        (l Base.:|> b Base.:|> a) Base.>< merge bs' r'
+      where
+        (l, r) = Base.split (((<=) `on` getLast) $ Base.measure b) as
+
+{- O(1) -}
+head :: OrdSeq a -> a
+head (OrdSeq (x Base.:<| _)) = unElem x
+
+{- amortized O(1), worst case O(log(n)) -}
+tail :: OrdSeq a -> OrdSeq a
+tail (OrdSeq (_ Base.:<| xs)) = OrdSeq xs
+
+{- O(1) -}
+last :: OrdSeq a -> a
+last (OrdSeq (_ Base.:|> x)) = unElem x
+
+{- amortized O(1), worst case O(log(n)) -}
+init :: OrdSeq a -> OrdSeq a
+init (OrdSeq (xs Base.:|> _)) = OrdSeq xs
+
 -- Generalized functions
 {- O(nlog(n)) -}
 fromFoldable :: (Foldable f, Ord a) => f a -> OrdSeq a
@@ -191,12 +221,6 @@ fromDescFoldable :: Foldable f => f a -> OrdSeq a
 fromDescFoldable = OrdSeq . foldr _insertElemRight Base.empty
   where
     _insertElemRight a xs = xs Base.:|> Elem a
-
--- {- O(n) -}
--- foldMapWithIndex :: Monoid m => (Int -> a -> m) -> OrdSeq a -> m
--- foldMapWithIndex f = foldMap (uncurry f) . snd . mapAccumL withIndex 0
---   where
---     withIndex i x = (i + 1, (i, x))
 
 {- O(n) -}
 foldlWithIndex :: (b -> Int -> a -> b) -> b -> OrdSeq a -> b
