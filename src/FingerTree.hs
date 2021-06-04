@@ -51,7 +51,6 @@ instance Foldable (FingerTree v) where
     where
       f' = flip $ foldr f
 
-  --f'' = flip $ foldr f'
   foldl _ z Empty = z
   foldl f z (Shallow a) = f z a
   foldl f z (Deep _ c b a) = foldl f (foldl f' (foldl f z c) b) a

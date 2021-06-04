@@ -12,10 +12,8 @@ module OrdSeq
     size,
     toList,
     fromList,
-    -- fromAscList,
-    -- fromDescList,
-    -- fromDistinctAscList,
-    -- fromDistinctDescList,
+    fromAscList,
+    fromDescList,
     insert,
     delete,
     member,
@@ -35,10 +33,10 @@ module OrdSeq
     -- kthLargestElem,
     -- kthLargestUniqueElem,
     fromFoldable,
-    -- fromAscFoldable,
-    -- fromDescFoldable,
-    -- fromDistinctAscFoldable,
-    -- fromDistinctDescFoldable,
+    fromAscFoldable,
+    fromDescFoldable,
+    foldlWithIndex,
+    foldrWithIndex,
   )
 where
 
@@ -92,7 +90,7 @@ instance Functor Elem where
       { unElem = f $ unElem x
       }
 
-instance Ord a => Base.Measured (Elem a) (SizeLast a) where
+instance Base.Measured (Elem a) (SizeLast a) where
   measure x =
     SizeLast
       { getSize = Common.Size 1,
@@ -114,7 +112,7 @@ instance (Show a) => Show (OrdSeq a) where
 empty :: OrdSeq a
 empty = OrdSeq Base.Empty
 
-singleton :: Ord a => a -> OrdSeq a
+singleton :: a -> OrdSeq a
 singleton = OrdSeq . Base.singleton . Elem
 
 pattern Empty :: OrdSeq a
@@ -136,6 +134,14 @@ toList = foldr (:) []
 {- See fromFoldable -}
 fromList :: Ord a => [a] -> OrdSeq a
 fromList = fromFoldable
+
+{- See fromAscFoldable -}
+fromAscList :: [a] -> OrdSeq a
+fromAscList = fromAscFoldable
+
+{- See fromDescFoldable -}
+fromDescList :: [a] -> OrdSeq a
+fromDescList = fromDescFoldable
 
 {- O(log(i)), where i <= n/2 is distance from
    insert point to nearest end -}
@@ -166,8 +172,38 @@ member a (OrdSeq xs) =
 fromFoldable :: (Foldable f, Ord a) => f a -> OrdSeq a
 fromFoldable = foldr insert empty
 
+{- O(n) -}
+fromAscFoldable :: Foldable f => f a -> OrdSeq a
+fromAscFoldable = OrdSeq . foldr _insertElemLeft Base.empty
+  where
+    _insertElemLeft a xs = Elem a Base.:<| xs
+
+{- O(n) -}
+fromDescFoldable :: Foldable f => f a -> OrdSeq a
+fromDescFoldable = OrdSeq . foldr _insertElemRight Base.empty
+  where
+    _insertElemRight a xs = xs Base.:|> Elem a
+
+-- {- O(n) -}
+-- foldMapWithIndex :: Monoid m => (Int -> a -> m) -> OrdSeq a -> m
+-- foldMapWithIndex f = foldMap (uncurry f) . snd . mapAccumL withIndex 0
+--   where
+--     withIndex i x = (i + 1, (i, x))
+
+{- O(n) -}
+foldlWithIndex :: (b -> Int -> a -> b) -> b -> OrdSeq a -> b
+foldlWithIndex f z xs = fst $ foldl f' (z, 0) xs
+  where
+    f' (b, i) a = (f b i a, i + 1)
+
+{- O(n) -}
+foldrWithIndex :: (Int -> a -> b -> b) -> b -> OrdSeq a -> b
+foldrWithIndex f z xs = fst $ foldr f' (z, length xs - 1) xs
+  where
+    f' a (b, i) = (f i a b, i - 1)
+
 -- Helper functions
-size' :: forall a. Ord a => Base.FingerTree (SizeLast a) (Elem a) -> Integer
+size' :: forall a. Base.FingerTree (SizeLast a) (Elem a) -> Integer
 size' xs =
   let meas = Base.measure xs :: SizeLast a
    in Common.unSize . getSize $ meas
