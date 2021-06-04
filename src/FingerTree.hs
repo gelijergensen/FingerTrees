@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
 {- An implementation of Finger Trees following
@@ -19,6 +21,7 @@ module FingerTree
   )
 where
 
+import Control.Applicative (liftA2)
 import qualified Data.Bifunctor as Bifunc
 import FingerTreeHelper
 import Prelude hiding (lookup, null)
