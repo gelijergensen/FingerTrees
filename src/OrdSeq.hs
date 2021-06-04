@@ -53,6 +53,9 @@ module OrdSeq
     dropWhileR,
     partition,
     filter,
+    zip,
+    zipWith,
+    unzip,
   )
 where
 
@@ -74,6 +77,9 @@ import Prelude hiding
     splitAt,
     tail,
     take,
+    unzip,
+    zip,
+    zipWith,
   )
 
 data SizeLast a = SizeLast
@@ -384,6 +390,30 @@ filter :: (a -> Bool) -> OrdSeq a -> OrdSeq a
 filter p (OrdSeq xs) = OrdSeq $ foldr f Base.Empty xs
   where
     f a xs = if p $ unElem a then a Base.:<| xs else xs
+
+{- O(min(n, m)) -}
+zip :: OrdSeq a -> OrdSeq b -> OrdSeq (a, b)
+zip (OrdSeq xs) (OrdSeq ys) = OrdSeq $ _zip xs ys
+  where
+    _zip Base.Empty _ = Base.Empty
+    _zip _ Base.Empty = Base.Empty
+    _zip (Elem a Base.:<| as) (Elem b Base.:<| bs) =
+      Elem (a, b) Base.:<| _zip as bs
+
+{- O(min(n, m)) -}
+zipWith :: (a -> b -> c) -> OrdSeq a -> OrdSeq b -> OrdSeq c
+zipWith f (OrdSeq xs) (OrdSeq ys) = OrdSeq $ _zipWith f xs ys
+  where
+    _zipWith f Base.Empty _ = Base.Empty
+    _zipWith f _ Base.Empty = Base.Empty
+    _zipWith f (Elem a Base.:<| as) (Elem b Base.:<| bs) =
+      Elem (f a b) Base.:<| _zipWith f as bs
+
+unzip :: OrdSeq (a, b) -> (OrdSeq a, OrdSeq b)
+unzip (OrdSeq xs) =
+  Bifunc.bimap OrdSeq OrdSeq $ foldr f (Base.Empty, Base.Empty) xs
+  where
+    f (Elem (a, b)) (as, bs) = (Elem a Base.:<| as, Elem b Base.:<| bs)
 
 -- Helper functions
 size' :: forall a. Base.FingerTree (SizeLast a) (Elem a) -> Int
