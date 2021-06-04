@@ -51,6 +51,8 @@ module OrdSeq
     takeWhileR,
     dropWhileL,
     dropWhileR,
+    partition,
+    filter,
   )
 where
 
@@ -59,7 +61,20 @@ import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
 import Data.Maybe (fromJust, listToMaybe)
 import qualified FingerTree as Base
-import Prelude hiding (drop, head, init, last, lookup, map, null, splitAt, tail, take)
+import Prelude hiding
+  ( drop,
+    filter,
+    head,
+    init,
+    last,
+    lookup,
+    map,
+    null,
+    partition,
+    splitAt,
+    tail,
+    take,
+  )
 
 data SizeLast a = SizeLast
   { getSize :: Common.Size, -- sum of all multiplicities
@@ -253,6 +268,35 @@ splitAt i (OrdSeq xs) = (OrdSeq l, OrdSeq r)
   where
     (l, r) = Base.split ((Common.Size i <) . getSize) xs
 
+-- Generalized functions
+{- O(nlog(n)) -}
+fromFoldable :: (Foldable f, Ord a) => f a -> OrdSeq a
+fromFoldable = foldr insert empty
+
+{- O(n) -}
+fromAscFoldable :: Foldable f => f a -> OrdSeq a
+fromAscFoldable = OrdSeq . foldr _insertElemLeft Base.empty
+  where
+    _insertElemLeft a xs = Elem a Base.:<| xs
+
+{- O(n) -}
+fromDescFoldable :: Foldable f => f a -> OrdSeq a
+fromDescFoldable = OrdSeq . foldr _insertElemRight Base.empty
+  where
+    _insertElemRight a xs = xs Base.:|> Elem a
+
+{- O(n) -}
+foldlWithIndex :: (b -> Int -> a -> b) -> b -> OrdSeq a -> b
+foldlWithIndex f z xs = fst $ foldl f' (z, 0) xs
+  where
+    f' (b, i) a = (f b i a, i + 1)
+
+{- O(n) -}
+foldrWithIndex :: (Int -> a -> b -> b) -> b -> OrdSeq a -> b
+foldrWithIndex f z xs = fst $ foldr f' (z, length xs - 1) xs
+  where
+    f' a (b, i) = (f i a b, i - 1)
+
 {- O(n) -}
 findIndicesL :: (a -> Bool) -> OrdSeq a -> [Int]
 findIndicesL p = foldrWithIndex f []
@@ -325,34 +369,21 @@ dropWhileL p = snd . spanl p
 dropWhileR :: (a -> Bool) -> OrdSeq a -> OrdSeq a
 dropWhileR p = snd . spanr p
 
--- Generalized functions
-{- O(nlog(n)) -}
-fromFoldable :: (Foldable f, Ord a) => f a -> OrdSeq a
-fromFoldable = foldr insert empty
+{- O(n) -}
+partition :: (a -> Bool) -> OrdSeq a -> (OrdSeq a, OrdSeq a)
+partition p (OrdSeq xs) =
+  Bifunc.bimap OrdSeq OrdSeq $ foldr f (Base.Empty, Base.Empty) xs
+  where
+    f a (xs, ys) =
+      if p $ unElem a
+        then (a Base.:<| xs, ys)
+        else (xs, a Base.:<| ys)
 
 {- O(n) -}
-fromAscFoldable :: Foldable f => f a -> OrdSeq a
-fromAscFoldable = OrdSeq . foldr _insertElemLeft Base.empty
+filter :: (a -> Bool) -> OrdSeq a -> OrdSeq a
+filter p (OrdSeq xs) = OrdSeq $ foldr f Base.Empty xs
   where
-    _insertElemLeft a xs = Elem a Base.:<| xs
-
-{- O(n) -}
-fromDescFoldable :: Foldable f => f a -> OrdSeq a
-fromDescFoldable = OrdSeq . foldr _insertElemRight Base.empty
-  where
-    _insertElemRight a xs = xs Base.:|> Elem a
-
-{- O(n) -}
-foldlWithIndex :: (b -> Int -> a -> b) -> b -> OrdSeq a -> b
-foldlWithIndex f z xs = fst $ foldl f' (z, 0) xs
-  where
-    f' (b, i) a = (f b i a, i + 1)
-
-{- O(n) -}
-foldrWithIndex :: (Int -> a -> b -> b) -> b -> OrdSeq a -> b
-foldrWithIndex f z xs = fst $ foldr f' (z, length xs - 1) xs
-  where
-    f' a (b, i) = (f i a b, i - 1)
+    f a xs = if p $ unElem a then a Base.:<| xs else xs
 
 -- Helper functions
 size' :: forall a. Base.FingerTree (SizeLast a) (Elem a) -> Int
