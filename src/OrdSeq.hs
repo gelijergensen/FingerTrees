@@ -93,8 +93,7 @@ newtype Elem a = Elem
   }
   deriving (Eq, Show)
 
-newtype OrdSeq a
-  = OrdSeq (Base.FingerTree (SizeLast a) (Elem a))
+newtype OrdSeq a = OrdSeq (Base.FingerTree (SizeLast a) (Elem a))
 
 instance Semigroup (SizeLast a) where
   x <> y =
@@ -140,6 +139,13 @@ instance Foldable OrdSeq where
   foldl f z (OrdSeq xs) = foldl f' z xs
     where
       f' a b = f a (unElem b)
+
+instance Eq a => Eq (OrdSeq a) where
+  Empty == Empty = True
+  Empty == _ = False
+  _ == Empty = False
+  OrdSeq (x Base.:<| xs) == OrdSeq (y Base.:<| ys) =
+    x == y && OrdSeq xs == OrdSeq ys
 
 instance (Show a) => Show (OrdSeq a) where
   showsPrec p xs =

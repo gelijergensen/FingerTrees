@@ -55,8 +55,7 @@ newtype Elem a = Elem
   }
   deriving (Eq, Show)
 
-newtype Set a
-  = Set (Base.FingerTree (SizeLast a) (Elem a))
+newtype Set a = Set (Base.FingerTree (SizeLast a) (Elem a))
 
 instance Semigroup (SizeLast a) where
   x <> y =

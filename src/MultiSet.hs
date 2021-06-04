@@ -65,8 +65,7 @@ data MultiElem a = MultiElem
   }
   deriving (Show)
 
-newtype MultiSet a
-  = MultiSet (Base.FingerTree (MultiSizeLast a) (MultiElem a))
+newtype MultiSet a = MultiSet (Base.FingerTree (MultiSizeLast a) (MultiElem a))
 
 instance Semigroup (MultiSizeLast a) where
   x <> y =
