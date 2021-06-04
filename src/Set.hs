@@ -125,7 +125,7 @@ null Empty = True
 null _ = False
 
 {- O(1) -}
-size :: Set a -> Integer
+size :: Set a -> Int
 size (Set xs) = size' xs
 
 {- O(n) -}
@@ -228,7 +228,7 @@ smallestElem (Set xs) =
     (a Base.:<| _) -> Just $ unElem a
 
 {- O(log(min(k, n-k))) -}
-kthSmallestElem :: Integer -> Set a -> Maybe a
+kthSmallestElem :: Int -> Set a -> Maybe a
 kthSmallestElem k (Set xs)
   | k < 1 = Nothing
   | otherwise = unElem <$> Base.lookup ((Common.Size k <=) . getSize) xs
@@ -241,7 +241,7 @@ largestElem (Set xs) =
     (_ Base.:|> a) -> Just $ unElem a
 
 {- O(log(min(k, n-k))) -}
-kthLargestElem :: Integer -> Set a -> Maybe a
+kthLargestElem :: Int -> Set a -> Maybe a
 kthLargestElem k xs = kthSmallestElem (size xs - k + 1) xs
 
 -- Generalized functions
@@ -284,7 +284,7 @@ fromDistinctDescFoldable = Set . foldr _insertElemRight Base.empty
     _insertElemRight a xs = xs Base.:|> Elem a
 
 -- Helper functions
-size' :: forall a. Base.FingerTree (SizeLast a) (Elem a) -> Integer
+size' :: forall a. Base.FingerTree (SizeLast a) (Elem a) -> Int
 size' xs =
   let meas = Base.measure xs :: SizeLast a
    in Common.unSize . getSize $ meas

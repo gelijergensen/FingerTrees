@@ -24,12 +24,12 @@ module OrdSeq
     tail,
     last,
     init,
-    -- smallestElem,
-    -- kthSmallestElem,
-    -- kthSmallestUniqueElem,
-    -- largestElem,
-    -- kthLargestElem,
-    -- kthLargestUniqueElem,
+    lookup,
+    (!?),
+    index,
+    drop,
+    take,
+    splitAt,
     fromFoldable,
     fromAscFoldable,
     fromDescFoldable,
@@ -41,8 +41,9 @@ where
 import qualified CommonTypes as Common
 import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
+import Data.Maybe (fromJust)
 import qualified FingerTree as Base
-import Prelude hiding (head, init, last, map, null, tail)
+import Prelude hiding (drop, head, init, last, lookup, map, null, splitAt, tail, take)
 
 data SizeLast a = SizeLast
   { getSize :: Common.Size, -- sum of all multiplicities
@@ -122,7 +123,7 @@ null Empty = True
 null _ = False
 
 {- O(1) -}
-size :: Ord a => OrdSeq a -> Integer
+size :: Ord a => OrdSeq a -> Int
 size (OrdSeq xs) = size' xs
 
 {- O(n) -}
@@ -205,6 +206,37 @@ last (OrdSeq (_ Base.:|> x)) = unElem x
 init :: OrdSeq a -> OrdSeq a
 init (OrdSeq (xs Base.:|> _)) = OrdSeq xs
 
+{- O(log(min(i, n-i))) -}
+lookup :: Int -> OrdSeq a -> Maybe a
+lookup i (OrdSeq xs)
+  | i < 0 = Nothing
+  | otherwise = unElem <$> Base.lookup ((Common.Size i <) . getSize) xs
+
+{- O(log(min(i, n-i))) -}
+(!?) :: OrdSeq a -> Int -> Maybe a
+(!?) = flip lookup
+
+{- O(log(min(i, n-i))) -}
+index :: OrdSeq a -> Int -> a
+index xs@(OrdSeq xs') i
+  | i < 0 || i >= length xs =
+    error $ "Index out of bounds in call to: Deque.index " ++ show i
+  | otherwise = unElem . fromJust $ Base.lookup ((Common.Size i <) . getSize) xs'
+
+{- O(log(min(i, n-i))) -}
+take :: Int -> OrdSeq a -> OrdSeq a
+take i = fst . splitAt i
+
+{- O(log(min(i, n-i))) -}
+drop :: Int -> OrdSeq a -> OrdSeq a
+drop i = snd . splitAt i
+
+{- O(log(min(i, n-i))) -}
+splitAt :: Int -> OrdSeq a -> (OrdSeq a, OrdSeq a)
+splitAt i (OrdSeq xs) = (OrdSeq l, OrdSeq r)
+  where
+    (l, r) = Base.split ((Common.Size i <) . getSize) xs
+
 -- Generalized functions
 {- O(nlog(n)) -}
 fromFoldable :: (Foldable f, Ord a) => f a -> OrdSeq a
@@ -235,7 +267,7 @@ foldrWithIndex f z xs = fst $ foldr f' (z, length xs - 1) xs
     f' a (b, i) = (f i a b, i - 1)
 
 -- Helper functions
-size' :: forall a. Base.FingerTree (SizeLast a) (Elem a) -> Integer
+size' :: forall a. Base.FingerTree (SizeLast a) (Elem a) -> Int
 size' xs =
   let meas = Base.measure xs :: SizeLast a
    in Common.unSize . getSize $ meas

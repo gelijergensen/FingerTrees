@@ -17,7 +17,7 @@ data Max a
   deriving (Eq, Ord, Show)
 
 newtype Size = Size
-  { unSize :: Integer
+  { unSize :: Int
   }
   deriving (Eq, Ord, Show)
 
@@ -148,7 +148,7 @@ areDisjointWith fMeas as (b Base.:<| bs') =
 
 isSubsetOfWith ::
   (Base.Measured a v, Eq a, Ord w) =>
-  (Base.FingerTree v a -> Integer) ->
+  (Base.FingerTree v a -> Int) ->
   (a -> a -> Bool) ->
   (v -> w) ->
   Base.FingerTree v a ->
@@ -170,7 +170,7 @@ isSubsetOfWith fSize fLeq fMeas as bs@(b Base.:<| bs') =
 
 isSupsetOfWith ::
   (Base.Measured a v, Eq a, Ord w) =>
-  (Base.FingerTree v a -> Integer) ->
+  (Base.FingerTree v a -> Int) ->
   (a -> a -> Bool) ->
   (v -> w) ->
   Base.FingerTree v a ->

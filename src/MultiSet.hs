@@ -61,7 +61,7 @@ data MultiSizeLast a = MultiSizeLast
 
 data MultiElem a = MultiElem
   { unMultiElem :: a,
-    multiplicity :: Integer
+    multiplicity :: Int
   }
   deriving (Show)
 
@@ -96,7 +96,7 @@ instance Eq a => Eq (MultiElem a) where
   x == y = unMultiElem x == unMultiElem y
 
 instance Foldable MultiElem where
-  foldr f z x = nTimes (fromInteger $ multiplicity x) (f $ unMultiElem x) z
+  foldr f z x = nTimes (multiplicity x) (f $ unMultiElem x) z
     where
       nTimes :: Int -> (a -> a) -> a -> a
       nTimes n f = foldr1 (.) $ replicate n f
@@ -146,11 +146,11 @@ null Empty = True
 null _ = False
 
 {- O(1) -}
-size :: MultiSet a -> Integer
+size :: MultiSet a -> Int
 size (MultiSet xs) = size' xs
 
 {- O(1) -}
-numUniqueElems :: MultiSet a -> Integer
+numUniqueElems :: MultiSet a -> Int
 numUniqueElems (MultiSet xs) = supportSize' xs
 
 {- O(n) -}
@@ -210,7 +210,7 @@ deleteEach a (MultiSet xs) = MultiSet $ Base.modify (_deleteEach a) ((Common.Las
 
 {- O(log(i)), where i <= n/2 is distance from
    element location to nearest end -}
-count :: (Ord a) => a -> MultiSet a -> Integer
+count :: (Ord a) => a -> MultiSet a -> Int
 count a (MultiSet xs) =
   maybe 0 multiplicity (Base.lookup ((Common.Last a <=) . getLast) xs)
 
@@ -276,13 +276,13 @@ smallestElem (MultiSet xs) =
     (a Base.:<| _) -> Just $ unMultiElem a
 
 {- O(log(min(k, n-k))) -}
-kthSmallestElem :: Integer -> MultiSet a -> Maybe a
+kthSmallestElem :: Int -> MultiSet a -> Maybe a
 kthSmallestElem k (MultiSet xs)
   | k < 1 = Nothing
   | otherwise = unMultiElem <$> Base.lookup ((Common.Size k <=) . cardinality) xs
 
 {- O(log(min(k, n-k))) -}
-kthSmallestUniqueElem :: Integer -> MultiSet a -> Maybe a
+kthSmallestUniqueElem :: Int -> MultiSet a -> Maybe a
 kthSmallestUniqueElem k (MultiSet xs)
   | k < 1 = Nothing
   | otherwise = unMultiElem <$> Base.lookup ((Common.Size k <=) . supportSize) xs
@@ -295,11 +295,11 @@ largestElem (MultiSet xs) =
     (_ Base.:|> a) -> Just $ unMultiElem a
 
 {- O(log(min(k, n-k))) -}
-kthLargestElem :: Integer -> MultiSet a -> Maybe a
+kthLargestElem :: Int -> MultiSet a -> Maybe a
 kthLargestElem k xs = kthSmallestElem (size xs - k + 1) xs
 
 {- O(log(min(k, n-k))) -}
-kthLargestUniqueElem :: Integer -> MultiSet a -> Maybe a
+kthLargestUniqueElem :: Int -> MultiSet a -> Maybe a
 kthLargestUniqueElem k xs = kthSmallestUniqueElem (numUniqueElems xs - k + 1) xs
 
 -- Generalized functions
@@ -342,12 +342,12 @@ fromDistinctDescFoldable = MultiSet . foldr _insertElemRight Base.empty
     _insertElemRight a xs = xs Base.:|> multiElem a
 
 -- Helper functions
-size' :: forall a. Base.FingerTree (MultiSizeLast a) (MultiElem a) -> Integer
+size' :: forall a. Base.FingerTree (MultiSizeLast a) (MultiElem a) -> Int
 size' xs =
   let meas = Base.measure xs :: MultiSizeLast a
    in Common.unSize . cardinality $ meas
 
-supportSize' :: forall a. Base.FingerTree (MultiSizeLast a) (MultiElem a) -> Integer
+supportSize' :: forall a. Base.FingerTree (MultiSizeLast a) (MultiElem a) -> Int
 supportSize' xs =
   let meas = Base.measure xs :: MultiSizeLast a
    in Common.unSize . supportSize $ meas
@@ -359,7 +359,7 @@ multiElem a =
       multiplicity = 1
     }
 
-changeMultiplicity :: (Integer -> Integer) -> MultiElem a -> Maybe (MultiElem a)
+changeMultiplicity :: (Int -> Int) -> MultiElem a -> Maybe (MultiElem a)
 changeMultiplicity f x
   | newMultiplicity <= 0 = Nothing
   | otherwise =
@@ -371,7 +371,7 @@ changeMultiplicity f x
   where
     newMultiplicity = f (multiplicity x)
 
-setMultiplicity :: Integer -> MultiElem a -> MultiElem a
+setMultiplicity :: Int -> MultiElem a -> MultiElem a
 setMultiplicity n = fromJust . changeMultiplicity (const n)
 
 incrementMultiElem :: MultiElem a -> MultiElem a
