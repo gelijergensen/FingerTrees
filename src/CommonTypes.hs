@@ -14,7 +14,7 @@ data Last a
 data Max a
   = NegInfinity
   | Max a
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 newtype Size = Size
   { unSize :: Integer
