@@ -20,7 +20,7 @@ module FingerTree
 where
 
 import qualified Data.Bifunctor as Bifunc
-import HelperTypes
+import FingerTreeHelper
 import Prelude hiding (lookup, null)
 
 data FingerTree v a

@@ -55,7 +55,7 @@ library
     exposed-modules:  FingerTree, Set, MultiSet, Deque
 
     -- Modules included in this library but not exported.
-    other-modules: HelperTypes, SetHelper
+    other-modules: FingerTreeHelper, CommonTypes
 
     -- LANGUAGE extensions used by modules in this package.
     other-extensions: FlexibleInstances, MultiParamTypeClasses, PatternSynonyms, ViewPatterns, ScopedTypeVariables

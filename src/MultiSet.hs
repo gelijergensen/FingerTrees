@@ -44,59 +44,59 @@ module MultiSet
   )
 where
 
+import qualified CommonTypes as Common
 import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
 import Data.Maybe (fromJust, maybeToList)
 import qualified FingerTree as Base
 import qualified Set
-import SetHelper
 import Prelude hiding (map, null)
 
-data MultiSizeMax a = MultiSizeMax
-  { cardinality :: Size, -- sum of all multiplicities
-    supportSize :: Size, -- number of unique elements
-    getMax :: Max a
+data MultiSizeLast a = MultiSizeLast
+  { cardinality :: Common.Size, -- sum of all multiplicities
+    supportSize :: Common.Size, -- number of unique elements
+    getLast :: Common.Last a -- largest element in the multiset
   }
   deriving (Eq, Show)
 
 data MultiElem a = MultiElem
-  { getMultiElem :: a,
+  { unMultiElem :: a,
     multiplicity :: Integer
   }
   deriving (Show)
 
 newtype MultiSet a
-  = MultiSet (Base.FingerTree (MultiSizeMax a) (MultiElem a))
+  = MultiSet (Base.FingerTree (MultiSizeLast a) (MultiElem a))
 
-instance Semigroup (MultiSizeMax a) where
+instance Semigroup (MultiSizeLast a) where
   x <> y =
-    MultiSizeMax
+    MultiSizeLast
       { cardinality = cardinality x <> cardinality y,
         supportSize = supportSize x <> supportSize y,
-        getMax = getMax x <> getMax y
+        getLast = getLast x <> getLast y
       }
 
-instance Monoid (MultiSizeMax a) where
+instance Monoid (MultiSizeLast a) where
   mempty =
-    MultiSizeMax
+    MultiSizeLast
       { cardinality = mempty,
         supportSize = mempty,
-        getMax = mempty
+        getLast = mempty
       }
 
-instance Functor MultiSizeMax where
+instance Functor MultiSizeLast where
   fmap f x =
-    MultiSizeMax
+    MultiSizeLast
       { cardinality = cardinality x,
         supportSize = supportSize x,
-        getMax = fmap f . getMax $ x
+        getLast = fmap f . getLast $ x
       }
 
 instance Eq a => Eq (MultiElem a) where
-  x == y = getMultiElem x == getMultiElem y
+  x == y = unMultiElem x == unMultiElem y
 
 instance Foldable MultiElem where
-  foldr f z x = nTimes (fromInteger $ multiplicity x) (f $ getMultiElem x) z
+  foldr f z x = nTimes (fromInteger $ multiplicity x) (f $ unMultiElem x) z
     where
       nTimes :: Int -> (a -> a) -> a -> a
       nTimes n f = foldr1 (.) $ replicate n f
@@ -104,16 +104,16 @@ instance Foldable MultiElem where
 instance Functor MultiElem where
   fmap f x =
     MultiElem
-      { getMultiElem = f $ getMultiElem x,
+      { unMultiElem = f $ unMultiElem x,
         multiplicity = multiplicity x
       }
 
-instance Base.Measured (MultiElem a) (MultiSizeMax a) where
+instance Base.Measured (MultiElem a) (MultiSizeLast a) where
   measure x =
-    MultiSizeMax
-      { cardinality = Size $ multiplicity x,
-        supportSize = Size 1,
-        getMax = Max $ getMultiElem x
+    MultiSizeLast
+      { cardinality = Common.Size $ multiplicity x,
+        supportSize = Common.Size 1,
+        getLast = Common.Last $ unMultiElem x
       }
 
 instance Foldable MultiSet where
@@ -181,38 +181,38 @@ fromDistinctDescList = fromDistinctDescFoldable
    insert point to nearest end -}
 insert :: (Ord a) => a -> MultiSet a -> MultiSet a
 insert a (MultiSet xs) =
-  MultiSet $ Base.modify (_insert a) ((Max a <=) . getMax) xs
+  MultiSet $ Base.modify (_insert a) ((Common.Last a <=) . getLast) xs
   where
     _insert a Nothing = [multiElem a]
     _insert a (Just x) =
-      if a == getMultiElem x
+      if a == unMultiElem x
         then [incrementMultiElem x]
         else [multiElem a, x]
 
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 deleteOnce :: (Ord a) => a -> MultiSet a -> MultiSet a
-deleteOnce a (MultiSet xs) = MultiSet $ Base.modify (_deleteOnce a) ((Max a <=) . getMax) xs
+deleteOnce a (MultiSet xs) = MultiSet $ Base.modify (_deleteOnce a) ((Common.Last a <=) . getLast) xs
   where
     _deleteOnce a Nothing = []
     _deleteOnce a (Just x) =
-      if a == getMultiElem x
+      if a == unMultiElem x
         then maybeToList $ decrementMultiElem x
         else []
 
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 deleteEach :: (Ord a) => a -> MultiSet a -> MultiSet a
-deleteEach a (MultiSet xs) = MultiSet $ Base.modify (_deleteEach a) ((Max a <=) . getMax) xs
+deleteEach a (MultiSet xs) = MultiSet $ Base.modify (_deleteEach a) ((Common.Last a <=) . getLast) xs
   where
     _deleteEach a Nothing = []
-    _deleteEach a (Just x) = [x | a /= getMultiElem x]
+    _deleteEach a (Just x) = [x | a /= unMultiElem x]
 
 {- O(log(i)), where i <= n/2 is distance from
    element location to nearest end -}
 count :: (Ord a) => a -> MultiSet a -> Integer
 count a (MultiSet xs) =
-  maybe 0 multiplicity (Base.lookup ((Max a <=) . getMax) xs)
+  maybe 0 multiplicity (Base.lookup ((Common.Last a <=) . getLast) xs)
 
 {- O(nlog(n)) -}
 map :: (Ord a, Ord b) => (a -> b) -> MultiSet a -> MultiSet b
@@ -227,36 +227,36 @@ mapMonotonic f (MultiSet xs) = MultiSet $ Bifunc.bimap (fmap f) (fmap f) xs
    where m <= n lengths of xs and ys -}
 union :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
 union (MultiSet xs) (MultiSet ys) =
-  MultiSet $ unionWith sumMultiElem getMax xs ys
+  MultiSet $ Common.unionWith sumMultiElem getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 intersection :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
 intersection (MultiSet xs) (MultiSet ys) =
-  MultiSet $ intersectionWith minMultiElem getMax xs ys
+  MultiSet $ Common.intersectionWith minMultiElem getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 difference :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
 difference (MultiSet xs) (MultiSet ys) =
-  MultiSet $ differenceWith differenceMultiElem getMax xs ys
+  MultiSet $ Common.differenceWith differenceMultiElem getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 areDisjoint :: (Ord a) => MultiSet a -> MultiSet a -> Bool
-areDisjoint (MultiSet xs) (MultiSet ys) = areDisjointWith getMax xs ys
+areDisjoint (MultiSet xs) (MultiSet ys) = Common.areDisjointWith getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 isSubsetOf :: (Ord a) => MultiSet a -> MultiSet a -> Bool
 isSubsetOf (MultiSet xs) (MultiSet ys) =
-  isSubsetOfWith size' ((<=) `on` multiplicity) getMax xs ys
+  Common.isSubsetOfWith size' ((<=) `on` multiplicity) getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 isSupsetOf :: (Ord a) => MultiSet a -> MultiSet a -> Bool
 isSupsetOf (MultiSet xs) (MultiSet ys) =
-  isSupsetOfWith size' ((<=) `on` multiplicity) getMax xs ys
+  Common.isSupsetOfWith size' ((<=) `on` multiplicity) getLast xs ys
 
 {- O(n) -}
 support :: (Ord a) => MultiSet a -> Set.Set a
@@ -273,26 +273,26 @@ smallestElem :: MultiSet a -> Maybe a
 smallestElem (MultiSet xs) =
   case xs of
     Base.Empty -> Nothing
-    (a Base.:<| _) -> Just $ getMultiElem a
+    (a Base.:<| _) -> Just $ unMultiElem a
 
 {- O(log(min(k, n-k))) -}
 kthSmallestElem :: Integer -> MultiSet a -> Maybe a
 kthSmallestElem k (MultiSet xs)
   | k < 1 = Nothing
-  | otherwise = getMultiElem <$> Base.lookup ((Size k <=) . cardinality) xs
+  | otherwise = unMultiElem <$> Base.lookup ((Common.Size k <=) . cardinality) xs
 
 {- O(log(min(k, n-k))) -}
 kthSmallestUniqueElem :: Integer -> MultiSet a -> Maybe a
 kthSmallestUniqueElem k (MultiSet xs)
   | k < 1 = Nothing
-  | otherwise = getMultiElem <$> Base.lookup ((Size k <=) . supportSize) xs
+  | otherwise = unMultiElem <$> Base.lookup ((Common.Size k <=) . supportSize) xs
 
 {- O(1) -}
 largestElem :: MultiSet a -> Maybe a
 largestElem (MultiSet xs) =
   case xs of
     Base.Empty -> Nothing
-    (_ Base.:|> a) -> Just $ getMultiElem a
+    (_ Base.:|> a) -> Just $ unMultiElem a
 
 {- O(log(min(k, n-k))) -}
 kthLargestElem :: Integer -> MultiSet a -> Maybe a
@@ -314,7 +314,7 @@ fromAscFoldable =
   where
     _incrInsertElemLeft a Base.Empty = Base.singleton $ multiElem a
     _incrInsertElemLeft a xs@(x Base.:<| r) =
-      if a == getMultiElem x
+      if a == unMultiElem x
         then incrementMultiElem x Base.:<| r
         else multiElem a Base.:<| xs
 
@@ -325,7 +325,7 @@ fromDescFoldable =
   where
     _incrInsertElemRight a Base.Empty = Base.singleton $ multiElem a
     _incrInsertElemRight a xs@(l Base.:|> x) =
-      if a == getMultiElem x
+      if a == unMultiElem x
         then l Base.:|> incrementMultiElem x
         else xs Base.:|> multiElem a
 
@@ -342,20 +342,20 @@ fromDistinctDescFoldable = MultiSet . foldr _insertElemRight Base.empty
     _insertElemRight a xs = xs Base.:|> multiElem a
 
 -- Helper functions
-size' :: forall a. Base.FingerTree (MultiSizeMax a) (MultiElem a) -> Integer
+size' :: forall a. Base.FingerTree (MultiSizeLast a) (MultiElem a) -> Integer
 size' xs =
-  let meas = Base.measure xs :: MultiSizeMax a
-   in unSize . cardinality $ meas
+  let meas = Base.measure xs :: MultiSizeLast a
+   in Common.unSize . cardinality $ meas
 
-supportSize' :: forall a. Base.FingerTree (MultiSizeMax a) (MultiElem a) -> Integer
+supportSize' :: forall a. Base.FingerTree (MultiSizeLast a) (MultiElem a) -> Integer
 supportSize' xs =
-  let meas = Base.measure xs :: MultiSizeMax a
-   in unSize . supportSize $ meas
+  let meas = Base.measure xs :: MultiSizeLast a
+   in Common.unSize . supportSize $ meas
 
 multiElem :: a -> MultiElem a
 multiElem a =
   MultiElem
-    { getMultiElem = a,
+    { unMultiElem = a,
       multiplicity = 1
     }
 
@@ -365,7 +365,7 @@ changeMultiplicity f x
   | otherwise =
     Just $
       MultiElem
-        { getMultiElem = getMultiElem x,
+        { unMultiElem = unMultiElem x,
           multiplicity = newMultiplicity
         }
   where

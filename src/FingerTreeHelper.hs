@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 {- Helper types and functions for Finger Trees -}
-module HelperTypes where
+module FingerTreeHelper where
 
 import qualified Data.Bifunctor as Bifunc
 

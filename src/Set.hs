@@ -39,69 +39,69 @@ module Set
   )
 where
 
+import qualified CommonTypes as Common
 import qualified Data.Bifunctor as Bifunc
 import qualified FingerTree as Base
-import SetHelper
 import Prelude hiding (map, null)
 
-data SizeMax a = SizeMax
-  { getSize :: Size,
-    getMax :: Max a
+data SizeLast a = SizeLast
+  { getSize :: Common.Size, -- sum of all multiplicities
+    getLast :: Common.Last a -- largest element in the set
   }
   deriving (Eq, Show)
 
 newtype Elem a = Elem
-  { getElem :: a
+  { unElem :: a
   }
   deriving (Eq, Show)
 
 newtype Set a
-  = Set (Base.FingerTree (SizeMax a) (Elem a))
+  = Set (Base.FingerTree (SizeLast a) (Elem a))
 
-instance Semigroup (SizeMax a) where
+instance Semigroup (SizeLast a) where
   x <> y =
-    SizeMax
+    SizeLast
       { getSize = getSize x <> getSize y,
-        getMax = getMax x <> getMax y
+        getLast = getLast x <> getLast y
       }
 
-instance Monoid (SizeMax a) where
+instance Monoid (SizeLast a) where
   mempty =
-    SizeMax
+    SizeLast
       { getSize = mempty,
-        getMax = mempty
+        getLast = mempty
       }
 
-instance Functor SizeMax where
+instance Functor SizeLast where
   fmap f x =
-    SizeMax
+    SizeLast
       { getSize = getSize x,
-        getMax = fmap f . getMax $ x
+        getLast = fmap f . getLast $ x
       }
 
 instance Foldable Elem where
-  foldr f z x = f (getElem x) z
+  foldr f z x = f (unElem x) z
 
 instance Functor Elem where
   fmap f x =
     Elem
-      { getElem = f $ getElem x
+      { unElem = f $ unElem x
       }
 
-instance Base.Measured (Elem a) (SizeMax a) where
+instance Base.Measured (Elem a) (SizeLast a) where
   measure x =
-    SizeMax
-      { getSize = Size 1,
-        getMax = Max $ getElem x
+    SizeLast
+      { getSize = Common.Size 1,
+        getLast = Common.Last $ unElem x
       }
 
 instance Foldable Set where
   foldr f z (Set xs) = foldr f' z xs
     where
-      f' a b = f (getElem a) b
+      f' a b = f (unElem a) b
   foldl f z (Set xs) = foldl f' z xs
     where
-      f' a b = f a (getElem b)
+      f' a b = f a (unElem b)
 
 instance (Show a) => Show (Set a) where
   showsPrec p xs =
@@ -155,27 +155,27 @@ fromDistinctDescList = fromDistinctDescFoldable
 {- O(log(i)), where i <= n/2 is distance from
    insert point to nearest end -}
 insert :: (Ord a) => a -> Set a -> Set a
-insert a (Set xs) = Set $ Base.modify (_insert a) ((Max a <=) . getMax) xs
+insert a (Set xs) = Set $ Base.modify (_insert a) ((Common.Last a <=) . getLast) xs
   where
     _insert a Nothing = [Elem a]
     _insert a (Just x) =
-      if a == getElem x
+      if a == unElem x
         then [x]
         else [Elem a, x]
 
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 delete :: (Ord a) => a -> Set a -> Set a
-delete a (Set xs) = Set $ Base.modify (_delete a) ((Max a <=) . getMax) xs
+delete a (Set xs) = Set $ Base.modify (_delete a) ((Common.Last a <=) . getLast) xs
   where
     _delete a Nothing = []
-    _delete a (Just x) = [x | a /= getElem x]
+    _delete a (Just x) = [x | a /= unElem x]
 
 {- O(log(i)), where i <= n/2 is distance from
    member location to nearest end -}
 member :: (Ord a) => a -> Set a -> Bool
 member a (Set xs) =
-  case Base.lookup ((Max a <=) . getMax) xs of
+  case Base.lookup ((Common.Last a <=) . getLast) xs of
     Nothing -> False
     Just (Elem x) -> a == x
 
@@ -191,33 +191,33 @@ mapMonotonic f (Set xs) = Set $ Bifunc.bimap (fmap f) (fmap f) xs
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 union :: (Ord a) => Set a -> Set a -> Set a
-union (Set xs) (Set ys) = Set $ unionWith const getMax xs ys
+union (Set xs) (Set ys) = Set $ Common.unionWith const getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 intersection :: (Ord a) => Set a -> Set a -> Set a
-intersection (Set xs) (Set ys) = Set $ intersectionWith const getMax xs ys
+intersection (Set xs) (Set ys) = Set $ Common.intersectionWith const getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 difference :: (Ord a) => Set a -> Set a -> Set a
 difference (Set xs) (Set ys) =
-  Set $ differenceWith (\x y -> Nothing) getMax xs ys
+  Set $ Common.differenceWith (\x y -> Nothing) getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 areDisjoint :: (Ord a) => Set a -> Set a -> Bool
-areDisjoint (Set xs) (Set ys) = areDisjointWith getMax xs ys
+areDisjoint (Set xs) (Set ys) = Common.areDisjointWith getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 isSubsetOf :: (Ord a) => Set a -> Set a -> Bool
-isSubsetOf (Set xs) (Set ys) = isSubsetOfWith size' (==) getMax xs ys
+isSubsetOf (Set xs) (Set ys) = Common.isSubsetOfWith size' (==) getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 isSupsetOf :: (Ord a) => Set a -> Set a -> Bool
-isSupsetOf (Set xs) (Set ys) = isSupsetOfWith size' (==) getMax xs ys
+isSupsetOf (Set xs) (Set ys) = Common.isSupsetOfWith size' (==) getLast xs ys
 
 -- Order statistics
 {- O(1) -}
@@ -225,20 +225,20 @@ smallestElem :: Set a -> Maybe a
 smallestElem (Set xs) =
   case xs of
     Base.Empty -> Nothing
-    (a Base.:<| _) -> Just $ getElem a
+    (a Base.:<| _) -> Just $ unElem a
 
 {- O(log(min(k, n-k))) -}
 kthSmallestElem :: Integer -> Set a -> Maybe a
 kthSmallestElem k (Set xs)
   | k < 1 = Nothing
-  | otherwise = getElem <$> Base.lookup ((Size k <=) . getSize) xs
+  | otherwise = unElem <$> Base.lookup ((Common.Size k <=) . getSize) xs
 
 {- O(1) -}
 largestElem :: Set a -> Maybe a
 largestElem (Set xs) =
   case xs of
     Base.Empty -> Nothing
-    (_ Base.:|> a) -> Just $ getElem a
+    (_ Base.:|> a) -> Just $ unElem a
 
 {- O(log(min(k, n-k))) -}
 kthLargestElem :: Integer -> Set a -> Maybe a
@@ -284,7 +284,7 @@ fromDistinctDescFoldable = Set . foldr _insertElemRight Base.empty
     _insertElemRight a xs = xs Base.:|> Elem a
 
 -- Helper functions
-size' :: forall a. Base.FingerTree (SizeMax a) (Elem a) -> Integer
+size' :: forall a. Base.FingerTree (SizeLast a) (Elem a) -> Integer
 size' xs =
-  let meas = Base.measure xs :: SizeMax a
-   in unSize . getSize $ meas
+  let meas = Base.measure xs :: SizeLast a
+   in Common.unSize . getSize $ meas
