@@ -19,6 +19,8 @@ module IntervalTree
     insert,
     delete,
     member,
+    overlappingInterval,
+    overlappingIntervals,
     map,
     mapMonotonic,
     (><),
@@ -40,7 +42,7 @@ where
 import qualified CommonTypes as Common
 import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
-import Data.Maybe (maybeToList)
+import Data.Maybe (listToMaybe, maybeToList)
 import qualified FingerTree as Base
 import qualified OrdSeq
 import Prelude hiding
@@ -218,6 +220,22 @@ member a (IntervalTree xs) =
   case Base.lookup ((Common.Last (low a) <=) . getLast) xs of
     Nothing -> False
     Just x -> high a `OrdSeq.member` highEnds x
+
+{- O(log(n) -}
+overlappingInterval ::
+  Ord a => Interval a -> IntervalTree a -> Maybe (Interval a)
+overlappingInterval a = listToMaybe . overlappingIntervals a
+
+{- O(mlog(n/m), where m is number of matches -}
+overlappingIntervals :: Ord a => Interval a -> IntervalTree a -> [Interval a]
+overlappingIntervals a (IntervalTree xs) = concatMap f l
+  where
+    f x =
+      fmap (Interval (lowEnd x))
+        . OrdSeq.toList
+        . OrdSeq.takeWhileR (low a <=)
+        $ highEnds x
+    (l, r) = Base.split ((Common.Last (high a) <) . getLast) xs
 
 {- O(nlog(n)) -}
 map :: (Ord a, Ord b) => (a -> b) -> IntervalTree a -> IntervalTree b
