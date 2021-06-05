@@ -34,6 +34,8 @@ module IntervalTree
     drop,
     take,
     splitAt,
+    partition,
+    filter,
     interval, --todo remove this
     intervals, --todo remove this!
   )
@@ -47,12 +49,14 @@ import qualified FingerTree as Base
 import qualified OrdSeq
 import Prelude hiding
   ( drop,
+    filter,
     head,
     init,
     last,
     lookup,
     map,
     null,
+    partition,
     splitAt,
     tail,
     take,
@@ -331,6 +335,39 @@ splitAt i (IntervalTree xs) = case r of
       )
   where
     (l, r) = Base.split ((Common.Size i <) . getSize) xs
+
+{- O(n) -}
+partition ::
+  Ord a =>
+  (Interval a -> Bool) ->
+  IntervalTree a ->
+  (IntervalTree a, IntervalTree a)
+partition p (IntervalTree xs) =
+  Bifunc.bimap IntervalTree IntervalTree $ foldr f (Base.Empty, Base.Empty) xs
+  where
+    f x (ys, zs) =
+      case OrdSeq.partition (p . Interval (lowEnd x)) $ highEnds x of
+        (OrdSeq.Empty, highEndsZ) ->
+          ( ys,
+            IntervalElem {lowEnd = lowEnd x, highEnds = highEndsZ} Base.:<| zs
+          )
+        (highEndsY, OrdSeq.Empty) ->
+          ( IntervalElem {lowEnd = lowEnd x, highEnds = highEndsY} Base.:<| ys,
+            zs
+          )
+        (highEndsY, highEndsZ) ->
+          ( IntervalElem {lowEnd = lowEnd x, highEnds = highEndsY} Base.:<| ys,
+            IntervalElem {lowEnd = lowEnd x, highEnds = highEndsZ} Base.:<| zs
+          )
+
+{- O(n) -}
+filter :: Ord a => (Interval a -> Bool) -> IntervalTree a -> IntervalTree a
+filter p (IntervalTree xs) = IntervalTree $ foldr f Base.Empty xs
+  where
+    f x xs = case OrdSeq.filter (p . Interval (lowEnd x)) $ highEnds x of
+      OrdSeq.Empty -> xs
+      highEnds' ->
+        IntervalElem {lowEnd = lowEnd x, highEnds = highEnds'} Base.:<| xs
 
 -- Helper functions
 size' ::
