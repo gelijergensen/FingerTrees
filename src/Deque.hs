@@ -438,7 +438,7 @@ breakl p xs = case findIndexL p xs of
 {- O(i), where i is the first matching index -}
 breakr :: (a -> Bool) -> Deque a -> (Deque a, Deque a)
 breakr p xs = case findIndexR p xs of
-  Nothing -> (xs, Empty)
+  Nothing -> (Empty, xs)
   Just i -> splitAt (i + 1) xs
 
 {- O(i), where i is the first matching index -}
@@ -455,7 +455,7 @@ takeWhileL p = fst . spanl p
 
 {- O(i), where i is the first matching index -}
 takeWhileR :: (a -> Bool) -> Deque a -> Deque a
-takeWhileR p = fst . spanr p
+takeWhileR p = snd . spanr p
 
 {- O(i), where i is the first matching index -}
 dropWhileL :: (a -> Bool) -> Deque a -> Deque a
@@ -463,7 +463,7 @@ dropWhileL p = snd . spanl p
 
 {- O(i), where i is the first matching index -}
 dropWhileR :: (a -> Bool) -> Deque a -> Deque a
-dropWhileR p = snd . spanr p
+dropWhileR p = fst . spanr p
 
 {- O(n) -}
 partition :: (a -> Bool) -> Deque a -> (Deque a, Deque a)

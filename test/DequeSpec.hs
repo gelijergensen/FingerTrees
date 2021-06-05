@@ -2,7 +2,8 @@ module DequeSpec where
 
 import Control.Exception (evaluate)
 import qualified Data.Bifunctor as Bifunc
-import Data.Maybe (isNothing)
+import qualified Data.List as List
+import Data.Maybe (isNothing, listToMaybe)
 import qualified Deque as D
 import Test.Hspec
 import Test.Hspec.QuickCheck
@@ -146,3 +147,199 @@ spec = do
         \i ->
           Bifunc.bimap D.toList D.toList (D.splitAt i (xs :: D.Deque Int))
             == splitAt i (D.toList xs)
+
+  describe "Deque.foldMapWithIndex" $ do
+    prop "Deque.foldMapWithIndex is a fold map with index" $
+      \xs ->
+        D.foldMapWithIndex replicate (xs :: D.Deque Char)
+          == concat (zipWith replicate [0, 1 ..] (D.toList xs))
+
+  describe "Deque.foldlWithIndex" $ do
+    prop
+      "Deque.foldlWithIndex and Deque.foldrWithIndex agree for commutative functions"
+      $ \xs ->
+        D.foldlWithIndex (\b i a -> b + i * a) 0 (xs :: D.Deque Int)
+          == D.foldrWithIndex (\i a b -> b + i * a) 0 xs
+
+  describe "Deque.foldrWithIndex" $ do
+    prop "Deque.foldrWithIndex is a foldr with an index" $
+      \xs ->
+        D.foldrWithIndex (\i a b -> b + i * a) 0 (xs :: D.Deque Int)
+          == foldr (\(i, a) b -> b + i * a) 0 (zip [0, 1 ..] (D.toList xs))
+
+  describe "Deque.mapWithIndex" $ do
+    prop "Deque.mapWithIndex is a map with an index" $
+      \xs ->
+        D.toList (D.mapWithIndex (*) (xs :: D.Deque Int))
+          == zipWith (*) [0, 1 ..] (D.toList xs)
+
+  describe "Deque.traverseWithIndex" $ do
+    prop "Deque.traverseWithIndex is a traversal with an index" $
+      \xs ->
+        map D.toList (D.traverseWithIndex replicate (xs :: D.Deque Int))
+          == traverse (uncurry replicate) (zip [0, 1 ..] (D.toList xs))
+
+  describe "Deque.scanl" $ do
+    prop "Deque.toList . Deque.scanl f z == scanl f z . Deque.toList" $
+      \xs ->
+        D.toList (D.scanl (+) 0 (xs :: D.Deque Int))
+          == scanl (+) 0 (D.toList xs)
+
+  describe "Deque.scanl1" $ do
+    it "throws an exception on the empty deque" $
+      evaluate (D.scanl1 (+) D.empty)
+        `shouldThrow` errorCall "Empty deque encountered in call to Deque.scanl1"
+    prop "Deque.toList . Deque.scanl1 f == scanl1 f . Deque.toList" $
+      \xs ->
+        not (null xs)
+          ==> D.toList (D.scanl1 (+) (xs :: D.Deque Int))
+          == scanl1 (+) (D.toList xs)
+
+  describe "Deque.scanr" $ do
+    prop "Deque.toList . Deque.scanr f z == scanr f z . Deque.toList" $
+      \xs ->
+        D.toList (D.scanr (+) 0 (xs :: D.Deque Int))
+          == scanr (+) 0 (D.toList xs)
+
+  describe "Deque.scanr1" $ do
+    it "throws an exception on the empty deque" $
+      evaluate (D.scanr1 (+) D.empty)
+        `shouldThrow` errorCall "Empty deque encountered in call to Deque.scanr1"
+    prop "Deque.toList . Deque.scanr1 f == scanr1 f . Deque.toList" $
+      \xs ->
+        not (null xs)
+          ==> D.toList (D.scanr1 (+) (xs :: D.Deque Int))
+          == scanr1 (+) (D.toList xs)
+
+  describe "Deque.findIndicesL" $ do
+    prop "Deque.findIndicesL p == findIndices p . Deque.toList" $
+      \xs ->
+        D.findIndicesL even (xs :: D.Deque Int)
+          == List.findIndices even (D.toList xs)
+
+  describe "Deque.findIndexL" $ do
+    prop "Deque.findIndexL p == findIndex p . Deque.toList" $
+      \xs ->
+        D.findIndexL even (xs :: D.Deque Int)
+          == List.findIndex even (D.toList xs)
+
+  describe "Deque.findIndicesR" $ do
+    prop "Deque.findIndicesR p == reverse . Deque.findIndicesL p" $
+      \xs ->
+        D.findIndicesR even (xs :: D.Deque Int)
+          == reverse (D.findIndicesL even xs)
+
+  describe "Deque.findIndexR" $ do
+    prop "Deque.findIndexR p == listToMaybe . reverse . D.findIndicesL p" $
+      \xs ->
+        D.findIndexR even (xs :: D.Deque Int)
+          == (listToMaybe . reverse . D.findIndicesL even $ xs)
+
+  describe "Deque.elemIndicesL" $ do
+    prop "Deque.elemIndicesL p == elemIndices p . Deque.toList" $
+      \x xs ->
+        D.elemIndicesL x (xs :: D.Deque Int)
+          == List.elemIndices x (D.toList xs)
+
+  describe "Deque.elemIndexL" $ do
+    prop "Deque.elemIndexL p == elemIndex p . Deque.toList" $
+      \x xs ->
+        D.elemIndexL x (xs :: D.Deque Int)
+          == List.elemIndex x (D.toList xs)
+
+  describe "Deque.elemIndicesR" $ do
+    prop "Deque.elemIndicesR p == reverse . Deque.elemIndicesL p" $
+      \x xs ->
+        D.elemIndicesR x (xs :: D.Deque Int)
+          == reverse (D.elemIndicesL x xs)
+
+  describe "Deque.elemIndexR" $ do
+    prop "Deque.elemIndexR p == listToMaybe . reverse . D.elemIndicesL p" $
+      \x xs ->
+        D.elemIndexR x (xs :: D.Deque Int)
+          == (listToMaybe . reverse . D.elemIndicesL x $ xs)
+
+  describe "Deque.breakl" $ do
+    prop
+      "bimap Deque.toList Deque.toList . Deque.breakl p == break p . Deque.toList"
+      $ \xs ->
+        Bifunc.bimap D.toList D.toList (D.breakl even (xs :: D.Deque Int))
+          == break even (D.toList xs)
+
+  describe "Deque.breakr" $ do
+    prop
+      "bimap Deque.toList Deque.toList . Deque.breakr p == (\\(ys, zs) -> (reverse zs, reverse ys)) . break p . reverse . Deque.toList"
+      $ \xs ->
+        Bifunc.bimap D.toList D.toList (D.breakr even (xs :: D.Deque Int))
+          == ( (\(ys, zs) -> (reverse zs, reverse ys))
+                 . break even
+                 . reverse
+                 $ D.toList xs
+             )
+
+  describe "Deque.spanl" $ do
+    prop
+      "bimap Deque.toList Deque.toList . Deque.spanl p == span p . Deque.toList"
+      $ \xs ->
+        Bifunc.bimap D.toList D.toList (D.spanl even (xs :: D.Deque Int))
+          == span even (D.toList xs)
+
+  describe "Deque.spanr" $ do
+    prop
+      "bimap Deque.toList Deque.toList . Deque.spanr p == (\\(ys, zs) -> (reverse zs, reverse ys)) . span p . reverse . Deque.toList"
+      $ \xs ->
+        Bifunc.bimap D.toList D.toList (D.spanr even (xs :: D.Deque Int))
+          == ( (\(ys, zs) -> (reverse zs, reverse ys))
+                 . span even
+                 . reverse
+                 $ D.toList xs
+             )
+
+  describe "Deque.dropWhileL" $ do
+    prop "Deque.dropWhileL p == snd . Deque.spanl p" $
+      \xs -> D.dropWhileL even (xs :: D.Deque Int) == snd (D.spanl even xs)
+
+  describe "Deque.takeWhileL" $ do
+    prop "Deque.takeWhileL p == fst . Deque.spanl p" $
+      \xs -> D.takeWhileL even (xs :: D.Deque Int) == fst (D.spanl even xs)
+
+  describe "Deque.dropWhileR" $ do
+    prop "Deque.dropWhileR p == fst . Deque.spanr p" $
+      \xs -> D.dropWhileR even (xs :: D.Deque Int) == fst (D.spanr even xs)
+
+  describe "Deque.takeWhileR" $ do
+    prop "Deque.takeWhileR p == snd . Deque.spanr p" $
+      \xs -> D.takeWhileR even (xs :: D.Deque Int) == snd (D.spanr even xs)
+
+  describe "Deque.partition" $ do
+    prop
+      "bimap Deque.toList Deque.toList . Deque.partition p == partition p . Deque.toList"
+      $ \xs ->
+        Bifunc.bimap D.toList D.toList (D.partition even (xs :: D.Deque Int))
+          == List.partition even (D.toList xs)
+
+  describe "Deque.filter" $ do
+    prop "Deque.toList . Deque.filter p == filter p . Deque.toList" $
+      \xs ->
+        D.toList (D.filter even (xs :: D.Deque Int))
+          == List.filter even (D.toList xs)
+
+  describe "Deque.zip" $ do
+    prop "Deque.toList . Deque.zip xs == zip (Deque.toList xs) . Deque.toList" $
+      \xs ys ->
+        D.toList (D.zip xs ys :: D.Deque (Int, Int))
+          == zip (D.toList xs) (D.toList ys)
+
+  describe "Deque.zipWith" $ do
+    prop
+      "Deque.toList . Deque.zipWith f xs == zipWith f (Deque.toList xs) . Deque.toList"
+      $ \xs ys ->
+        D.toList (D.zipWith (+) xs ys :: D.Deque Int)
+          == zipWith (+) (D.toList xs) (D.toList ys)
+
+  describe "Deque.unzip" $ do
+    prop
+      "bimap Deque.toList Deque.toList . Deque.unzip == unzip . Deque.toList"
+      $ \xs ->
+        Bifunc.bimap D.toList D.toList (D.unzip (xs :: D.Deque (Int, Int)))
+          == unzip (D.toList xs)
