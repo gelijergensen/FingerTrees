@@ -3,6 +3,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{- An implementation of trees of intervals -}
 module IntervalTree
   ( IntervalTree (Empty),
     Interval (..),
@@ -36,8 +37,6 @@ module IntervalTree
     splitAt,
     partition,
     filter,
-    interval, --todo remove this
-    intervals, --todo remove this!
   )
 where
 
@@ -425,11 +424,3 @@ mapIntervalElemMonotonic f x =
     { lowEnd = f $ lowEnd x,
       highEnds = OrdSeq.mapMonotonic f $ highEnds x
     }
-
--- todo remove this!
-intervals :: Ord a => [a] -> [a] -> [Interval a]
-intervals = zipWith interval
-
--- todo remove this!
-interval :: Ord a => a -> a -> Interval a
-interval x y = Interval (min x y) (max x y)
