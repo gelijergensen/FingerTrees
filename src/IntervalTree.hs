@@ -22,6 +22,13 @@ module IntervalTree
     map,
     mapMonotonic,
     (><),
+    head,
+    tail,
+    last,
+    init,
+    lookup,
+    (!?),
+    index,
     interval, --todo remove this
     intervals, --todo remove this!
   )
@@ -33,7 +40,7 @@ import Data.Function (on)
 import Data.Maybe (maybeToList)
 import qualified FingerTree as Base
 import qualified OrdSeq
-import Prelude hiding (map, null)
+import Prelude hiding (head, init, last, lookup, map, null, tail)
 
 data Interval a = Interval
   { low :: a,
@@ -216,18 +223,58 @@ infixr 5 ><
 (IntervalTree xs) >< (IntervalTree ys) =
   IntervalTree $ Common.unionWith mergeIntervalElems getLast xs ys
 
--- (IntervalTree xs) >< (IntervalTree ys) = IntervalTree $ merge xs ys
---   where
---     merge Base.Empty bs = bs
---     merge as Base.Empty = as
---     merge as bs@(b Base.:<| bs') = case r of
---       Base.Empty -> l Base.>< bs
---       a Base.:<| r' ->
---         if lowEnd a == lowEnd b
---           then (l Base.:|> mergeIntervalElems a b) Base.>< merge bs' r'
---           else (l Base.:|> b) Base.>< merge bs' r
---       where
---         (l, r) = Base.split (((<=) `on` getLast) $ Base.measure b) as
+{- O(1) -}
+head :: Ord a => IntervalTree a -> Interval a
+head (IntervalTree (x Base.:<| _)) =
+  Interval (lowEnd x) (OrdSeq.head $ highEnds x)
+
+{- amortized O(1), worst case O(log(n)) -}
+tail :: Ord a => IntervalTree a -> IntervalTree a
+tail (IntervalTree (x Base.:<| xs)) = case OrdSeq.tail $ highEnds x of
+  OrdSeq.Empty -> IntervalTree xs
+  highEnds' ->
+    IntervalTree $
+      IntervalElem {lowEnd = lowEnd x, highEnds = highEnds'} Base.:<| xs
+
+{- O(1) -}
+last :: Ord a => IntervalTree a -> Interval a
+last (IntervalTree (_ Base.:|> x)) =
+  Interval (lowEnd x) (OrdSeq.last $ highEnds x)
+
+{- amortized O(1), worst case O(log(n)) -}
+init :: Ord a => IntervalTree a -> IntervalTree a
+init (IntervalTree (xs Base.:|> x)) = case OrdSeq.init $ highEnds x of
+  OrdSeq.Empty -> IntervalTree xs
+  highEnds' ->
+    IntervalTree $
+      xs Base.:|> IntervalElem {lowEnd = lowEnd x, highEnds = highEnds'}
+
+{- O(log(min(i, n-i))) -}
+lookup :: Ord a => Int -> IntervalTree a -> Maybe (Interval a)
+lookup i (IntervalTree xs)
+  | i < 0 = Nothing
+  | otherwise = case r of
+    Base.Empty -> Nothing
+    x Base.:<| _ ->
+      Interval (lowEnd x) <$> OrdSeq.lookup (i - size' l) (highEnds x)
+  where
+    (l, r) = Base.split ((Common.Size i <) . getSize) xs
+
+{- O(log(min(i, n-i))) -}
+(!?) :: Ord a => IntervalTree a -> Int -> Maybe (Interval a)
+(!?) = flip lookup
+
+{- O(log(min(i, n-i))) -}
+index :: Ord a => IntervalTree a -> Int -> Interval a
+index xs@(IntervalTree xs') i
+  | i < 0 || i >= size xs =
+    error $ "Index out of bounds in call to: IntervalTree.index " ++ show i
+  | otherwise =
+    case r of
+      x Base.:<| _ ->
+        Interval (lowEnd x) $ OrdSeq.index (highEnds x) (i - size' l)
+  where
+    (l, r) = Base.split ((Common.Size i <) . getSize) xs'
 
 -- Helper functions
 size' ::
