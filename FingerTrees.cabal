@@ -80,7 +80,7 @@ test-suite FingerTrees-test
     hs-source-dirs:   test
 
     -- The entrypoint to the test suite.
-    main-is:          MyLibTest.hs
+    main-is:          Main.hs
 
     -- Test dependencies.
-    build-depends:    base ^>=4.14.1.0
+    build-depends:    hspec, QuickCheck, base ^>=4.14.1.0
