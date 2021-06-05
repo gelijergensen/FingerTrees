@@ -27,7 +27,7 @@ spec = do
   describe "Deque.null" $ do
     it "Deque.null Deque.empty == True" $ do
       D.null D.empty `shouldBe` True
-    prop "Deque.null Deque.singleton == False" $
+    prop "Deque.null . Deque.singleton == const False" $
       \x -> not $ D.null (D.singleton x :: D.Deque Int)
 
   describe "Deque.length" $ do

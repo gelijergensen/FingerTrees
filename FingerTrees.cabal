@@ -82,7 +82,7 @@ test-suite FingerTrees-test
     -- The entrypoint to the test suite.
     main-is:          Spec.hs
 
-    other-modules: DequeSpec
+    other-modules: DequeSpec, IntervalTreeSpec
 
     -- Test dependencies.
     build-depends:    
