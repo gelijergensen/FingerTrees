@@ -268,18 +268,22 @@ viewR (Deque xs) = case xs of
 
 {- O(1) -}
 head :: Deque a -> a
+head Empty = error "Deque.head: empty Deque"
 head (x :<| _) = x
 
 {- amortized O(1), worst case O(log(n)) -}
 tail :: Deque a -> Deque a
+tail Empty = error "Deque.tail: empty Deque"
 tail (_ :<| xs) = xs
 
 {- O(1) -}
 last :: Deque a -> a
+last Empty = error "Deque.last: empty Deque"
 last (_ :|> x) = x
 
 {- amortized O(1), worst case O(log(n)) -}
 init :: Deque a -> Deque a
+init Empty = error "Deque.init: empty Deque"
 init (xs :|> _) = xs
 
 {- O(log(min(i, n-i))) -}
