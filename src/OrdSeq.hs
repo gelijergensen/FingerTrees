@@ -228,10 +228,7 @@ infixr 5 ><
   where
     merge Base.Empty bs = bs
     merge as Base.Empty = as
-    merge as bs@(b Base.:<| bs') = case r of
-      Base.Empty -> l Base.>< bs
-      a Base.:<| r' ->
-        (l Base.:|> b Base.:|> a) Base.>< merge bs' r'
+    merge as bs@(b Base.:<| bs') = (l Base.:|> b) Base.>< merge bs' r
       where
         (l, r) = Base.split (((<=) `on` getLast) $ Base.measure b) as
 
