@@ -80,7 +80,15 @@ test-suite FingerTrees-test
     hs-source-dirs:   test
 
     -- The entrypoint to the test suite.
-    main-is:          Main.hs
+    main-is:          Spec.hs
+
+    other-modules: DequeSpec
 
     -- Test dependencies.
-    build-depends:    hspec, QuickCheck, base ^>=4.14.1.0
+    build-depends:    
+        base ^>=4.14.1.0
+      , hspec
+      , QuickCheck
+      , FingerTrees
+
+    build-tool-depends: hspec-discover:hspec-discover
