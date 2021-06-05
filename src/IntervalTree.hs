@@ -29,6 +29,9 @@ module IntervalTree
     lookup,
     (!?),
     index,
+    drop,
+    take,
+    splitAt,
     interval, --todo remove this
     intervals, --todo remove this!
   )
@@ -40,7 +43,18 @@ import Data.Function (on)
 import Data.Maybe (maybeToList)
 import qualified FingerTree as Base
 import qualified OrdSeq
-import Prelude hiding (head, init, last, lookup, map, null, tail)
+import Prelude hiding
+  ( drop,
+    head,
+    init,
+    last,
+    lookup,
+    map,
+    null,
+    splitAt,
+    tail,
+    take,
+  )
 
 data Interval a = Interval
   { low :: a,
@@ -275,6 +289,30 @@ index xs@(IntervalTree xs') i
         Interval (lowEnd x) $ OrdSeq.index (highEnds x) (i - size' l)
   where
     (l, r) = Base.split ((Common.Size i <) . getSize) xs'
+
+{- O(log(min(i, n-i))) -}
+take :: Ord a => Int -> IntervalTree a -> IntervalTree a
+take i = fst . splitAt i
+
+{- O(log(min(i, n-i))) -}
+drop :: Ord a => Int -> IntervalTree a -> IntervalTree a
+drop i = snd . splitAt i
+
+{- O(log(min(i, n-i))) -}
+splitAt :: Ord a => Int -> IntervalTree a -> (IntervalTree a, IntervalTree a)
+splitAt i (IntervalTree xs) = case r of
+  Base.Empty -> (IntervalTree l, Empty)
+  x Base.:<| r' -> case OrdSeq.splitAt (i - size' l) $ highEnds x of
+    (OrdSeq.Empty, _) -> (IntervalTree l, IntervalTree r)
+    (_, OrdSeq.Empty) -> (IntervalTree $ l Base.:|> x, IntervalTree r')
+    (highEndsL, highEndsR) ->
+      ( IntervalTree $
+          l Base.:|> IntervalElem {lowEnd = lowEnd x, highEnds = highEndsL},
+        IntervalTree $
+          IntervalElem {lowEnd = lowEnd x, highEnds = highEndsR} Base.:<| r'
+      )
+  where
+    (l, r) = Base.split ((Common.Size i <) . getSize) xs
 
 -- Helper functions
 size' ::
