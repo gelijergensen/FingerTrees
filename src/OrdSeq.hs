@@ -93,8 +93,7 @@ newtype Elem a = Elem
   }
   deriving (Eq, Show)
 
-newtype OrdSeq a
-  = OrdSeq (Base.FingerTree (SizeLast a) (Elem a))
+newtype OrdSeq a = OrdSeq (Base.FingerTree (SizeLast a) (Elem a))
 
 instance Semigroup (SizeLast a) where
   x <> y =
@@ -141,6 +140,13 @@ instance Foldable OrdSeq where
     where
       f' a b = f a (unElem b)
 
+instance Eq a => Eq (OrdSeq a) where
+  Empty == Empty = True
+  Empty == _ = False
+  _ == Empty = False
+  OrdSeq (x Base.:<| xs) == OrdSeq (y Base.:<| ys) =
+    x == y && OrdSeq xs == OrdSeq ys
+
 instance (Show a) => Show (OrdSeq a) where
   showsPrec p xs =
     showParen (p > 10) $ showString "fromList " . shows (toList xs)
@@ -182,7 +188,8 @@ fromDescList = fromDescFoldable
 {- O(log(i)), where i <= n/2 is distance from
    insert point to nearest end -}
 insert :: (Ord a) => a -> OrdSeq a -> OrdSeq a
-insert a (OrdSeq xs) = OrdSeq $ Base.modify (_insert a) ((Common.Last a <=) . getLast) xs
+insert a (OrdSeq xs) =
+  OrdSeq $ Base.modify (_insert a) ((Common.Last a <=) . getLast) xs
   where
     _insert a Nothing = [Elem a]
     _insert a (Just x) = [Elem a, x]
@@ -190,7 +197,8 @@ insert a (OrdSeq xs) = OrdSeq $ Base.modify (_insert a) ((Common.Last a <=) . ge
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 delete :: (Ord a) => a -> OrdSeq a -> OrdSeq a
-delete a (OrdSeq xs) = OrdSeq $ Base.modify (_delete a) ((Common.Last a <=) . getLast) xs
+delete a (OrdSeq xs) =
+  OrdSeq $ Base.modify (_delete a) ((Common.Last a <=) . getLast) xs
   where
     _delete a Nothing = []
     _delete a (Just x) = [x | a /= unElem x]
@@ -204,11 +212,11 @@ member a (OrdSeq xs) =
     Just (Elem x) -> a == x
 
 {- O(nlog(n)) -}
-map :: (Ord a, Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
+map :: (Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
 map f = fromList . fmap f . toList
 
 {- O(n). Does not check for monotonicity (that x < y => f x < f y) -}
-mapMonotonic :: (Ord a, Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
+mapMonotonic :: (Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
 mapMonotonic f (OrdSeq xs) = OrdSeq $ Bifunc.bimap (fmap f) (fmap f) xs
 
 {- Probably amortized O(m log(n/m + 1),
@@ -220,10 +228,7 @@ infixr 5 ><
   where
     merge Base.Empty bs = bs
     merge as Base.Empty = as
-    merge as bs@(b Base.:<| bs') = case r of
-      Base.Empty -> l Base.>< bs
-      a Base.:<| r' ->
-        (l Base.:|> b Base.:|> a) Base.>< merge bs' r'
+    merge as bs@(b Base.:<| bs') = (l Base.:|> b) Base.>< merge bs' r
       where
         (l, r) = Base.split (((<=) `on` getLast) $ Base.measure b) as
 
@@ -258,7 +263,8 @@ index :: OrdSeq a -> Int -> a
 index xs@(OrdSeq xs') i
   | i < 0 || i >= length xs =
     error $ "Index out of bounds in call to: OrdSeq.index " ++ show i
-  | otherwise = unElem . fromJust $ Base.lookup ((Common.Size i <) . getSize) xs'
+  | otherwise =
+    unElem . fromJust $ Base.lookup ((Common.Size i <) . getSize) xs'
 
 {- O(log(min(i, n-i))) -}
 take :: Int -> OrdSeq a -> OrdSeq a
@@ -348,7 +354,7 @@ breakl p xs = case findIndexL p xs of
 {- O(i), where i is the first matching index -}
 breakr :: (a -> Bool) -> OrdSeq a -> (OrdSeq a, OrdSeq a)
 breakr p xs = case findIndexR p xs of
-  Nothing -> (xs, Empty)
+  Nothing -> (Empty, xs)
   Just i -> splitAt (i + 1) xs
 
 {- O(i), where i is the first matching index -}
@@ -365,7 +371,7 @@ takeWhileL p = fst . spanl p
 
 {- O(i), where i is the first matching index -}
 takeWhileR :: (a -> Bool) -> OrdSeq a -> OrdSeq a
-takeWhileR p = fst . spanr p
+takeWhileR p = snd . spanr p
 
 {- O(i), where i is the first matching index -}
 dropWhileL :: (a -> Bool) -> OrdSeq a -> OrdSeq a
@@ -373,7 +379,7 @@ dropWhileL p = snd . spanl p
 
 {- O(i), where i is the first matching index -}
 dropWhileR :: (a -> Bool) -> OrdSeq a -> OrdSeq a
-dropWhileR p = snd . spanr p
+dropWhileR p = fst . spanr p
 
 {- O(n) -}
 partition :: (a -> Bool) -> OrdSeq a -> (OrdSeq a, OrdSeq a)

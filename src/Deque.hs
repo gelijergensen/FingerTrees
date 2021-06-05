@@ -98,9 +98,7 @@ newtype Elem a = Elem
   }
   deriving (Eq, Show)
 
-newtype Deque a
-  = Deque (Base.FingerTree Size (Elem a))
-  deriving (Eq)
+newtype Deque a = Deque (Base.FingerTree Size (Elem a))
 
 data ViewL a
   = NilL
@@ -144,6 +142,12 @@ instance Functor Deque where
 instance Traversable Deque where
   traverse _ Empty = pure Empty
   traverse f (x :<| xs) = liftA2 (:<|) (f x) (traverse f xs)
+
+instance Eq a => Eq (Deque a) where
+  Empty == Empty = True
+  Empty == _ = False
+  _ == Empty = False
+  (x :<| xs) == (y :<| ys) = x == y && xs == ys
 
 instance (Show a) => Show (Deque a) where
   showsPrec p xs =
@@ -359,7 +363,8 @@ mapWithIndex f = snd . mapAccumL f' 0
     f' i x = (i + 1, f i x)
 
 {- O(n) -}
-traverseWithIndex :: Applicative f => (Int -> a -> f b) -> Deque a -> f (Deque b)
+traverseWithIndex ::
+  Applicative f => (Int -> a -> f b) -> Deque a -> f (Deque b)
 traverseWithIndex f = traverse (uncurry f) . snd . mapAccumL withIndex 0
   where
     withIndex i x = (i + 1, (i, x))

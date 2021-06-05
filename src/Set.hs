@@ -55,8 +55,7 @@ newtype Elem a = Elem
   }
   deriving (Eq, Show)
 
-newtype Set a
-  = Set (Base.FingerTree (SizeLast a) (Elem a))
+newtype Set a = Set (Base.FingerTree (SizeLast a) (Elem a))
 
 instance Semigroup (SizeLast a) where
   x <> y =
@@ -155,7 +154,8 @@ fromDistinctDescList = fromDistinctDescFoldable
 {- O(log(i)), where i <= n/2 is distance from
    insert point to nearest end -}
 insert :: (Ord a) => a -> Set a -> Set a
-insert a (Set xs) = Set $ Base.modify (_insert a) ((Common.Last a <=) . getLast) xs
+insert a (Set xs) =
+  Set $ Base.modify (_insert a) ((Common.Last a <=) . getLast) xs
   where
     _insert a Nothing = [Elem a]
     _insert a (Just x) =
@@ -166,7 +166,8 @@ insert a (Set xs) = Set $ Base.modify (_insert a) ((Common.Last a <=) . getLast)
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
 delete :: (Ord a) => a -> Set a -> Set a
-delete a (Set xs) = Set $ Base.modify (_delete a) ((Common.Last a <=) . getLast) xs
+delete a (Set xs) =
+  Set $ Base.modify (_delete a) ((Common.Last a <=) . getLast) xs
   where
     _delete a Nothing = []
     _delete a (Just x) = [x | a /= unElem x]
@@ -196,7 +197,8 @@ union (Set xs) (Set ys) = Set $ Common.unionWith const getLast xs ys
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
 intersection :: (Ord a) => Set a -> Set a -> Set a
-intersection (Set xs) (Set ys) = Set $ Common.intersectionWith const getLast xs ys
+intersection (Set xs) (Set ys) =
+  Set $ Common.intersectionWith const getLast xs ys
 
 {- Probably amortized O(m log(n/m + 1),
    where m <= n lengths of xs and ys -}
