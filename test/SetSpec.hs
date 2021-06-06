@@ -74,6 +74,7 @@ spec = do
     prop "Set.fromDistinctAscList . sort == Set.fromList" $
       \xs ->
         (S.fromDistinctAscList . List.nub . List.sort $ (xs :: [Int])) == S.fromList xs
+
   describe "Set.fromDescList" $ do
     prop "Set.fromDescList . reverse . sort == Set.fromList" $
       \xs ->

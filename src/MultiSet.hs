@@ -45,6 +45,7 @@ module MultiSet
 where
 
 import qualified CommonTypes as Common
+import Control.Monad (mfilter)
 import qualified Data.Bifunctor as Bifunc
 import Data.Function (on)
 import Data.Maybe (fromJust, maybeToList)
@@ -198,7 +199,7 @@ deleteOnce a (MultiSet xs) =
     _deleteOnce a (Just x) =
       if a == unMultiElem x
         then maybeToList $ decrementMultiElem x
-        else []
+        else [x]
 
 {- O(log(i)), where i <= n/2 is distance from
    delete point to nearest end -}
@@ -213,7 +214,9 @@ deleteEach a (MultiSet xs) =
    element location to nearest end -}
 count :: (Ord a) => a -> MultiSet a -> Int
 count a (MultiSet xs) =
-  maybe 0 multiplicity (Base.lookup ((Common.Last a <=) . getLast) xs)
+  maybe 0 multiplicity
+    . mfilter ((== a) . unMultiElem)
+    $ Base.lookup ((Common.Last a <=) . getLast) xs
 
 {- O(nlog(n)) -}
 map :: (Ord a, Ord b) => (a -> b) -> MultiSet a -> MultiSet b
