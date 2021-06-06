@@ -391,7 +391,7 @@ The implementation has similar complexities to `Set`, but provides mostly the sa
 
 `O(log(min(i, n-i)))`
 * random access lookups (`lookup i`),
-* insertion/deletion/modification and
+* insertion and deletion and
 * splitting (`take i`, `drop i`, `splitAt i`),
 
 `O(i)`
@@ -405,6 +405,82 @@ The implementation has similar complexities to `Set`, but provides mostly the sa
 Due to the `Ord` constraint, `OrdSeq` is only a `Foldable` and not a `Functor` or `Traversable`.
 
 ## Interval Trees
+
+As a final, more exotic application, we also present the interval trees suggested by Hinze and Paterson [[1]](#References).
+We represent an `Interval` as a pair of lower and upper bounds.
+The tree contains elements which consist of a lower bound and multiple corresponding upper bounds.
+Storing the upper bounds in an `OrdSeq` (rather than a list) preserves the improved complexities for operations like random access and merging.
+As monoid for measurements, we combine the `SizeLast` of `Set`s with the monoid for `Max`imums:
+```haskell
+data Interval a = Interval
+  { low :: a,
+    high :: a
+  }
+
+data IntervalElem a = IntervalElem
+  { lowEnd :: a,
+    highEnds :: OrdSeq.OrdSeq a
+  }
+
+newtype IntervalTree a
+  = IntervalTree (FingerTree (SizeLastMax a) (IntervalElem a))
+
+data Max a
+  = NegInfinity
+  | Max a
+
+data SizeLastMax a = SizeLastMax
+  { getSize :: Size,
+    getLast :: Last a,
+    getMax :: Max a
+  }
+
+instance Ord a => Monoid (Max a) where
+  x <> NegInfinity = x
+  NegInfinity <> x = x
+  Max x <> Max y = Max $ x `max` y
+  mempty = NegInfinity
+
+instance Ord a => Monoid (SizeLastMax a) where
+  x <> y =
+    SizeLastMax
+      { getSize = getSize x <> getSize y,
+        getLast = getLast x <> getLast y,
+        getMax = getMax x <> getMax y
+      }
+  mempty =
+    SizeLastMax
+      { getSize = mempty,
+        getLast = mempty,
+        getMax = mempty
+      }
+
+instance Ord a => Measured (IntervalElem a) (SizeLastMax a) where
+  measure x =
+    SizeLastMax
+      { getSize = Size . OrdSeq.size $ highEnds x,
+        getLast = Last $ lowEnd x,
+        getMax = Max . OrdSeq.last $ highEnds x
+      }
+```
+`IntervalTree` can in some ways simply be though of as an `OrdSeq` of `Interval`s and so shares many complexities with `OrdSeq`.
+In particular, it offers `O(1)`
+* `size` and 
+* `head`, `tail`, `last`, `init`,
+
+`O(log(min(i, n-i)))`
+* random access lookups (`lookup i`),
+* insertion and deletion,
+* splitting (`take i`, `drop i`, `splitAt i`), and
+* finding of any interval overlapping a given one
+
+`O(log(n)^2)`
+* retrieval of all overlapping intervals,
+
+`O(m*log(n/m + 1))`
+* concatenation,
+
+as well as `O(n)` and `O(n * log(n))` mapping, depending on whether the function preserves the order of the elements.
 
 # References
 
