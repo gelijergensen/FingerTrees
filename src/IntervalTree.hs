@@ -232,19 +232,20 @@ member a (IntervalTree xs) =
     Nothing -> False
     Just x -> low a == lowEnd x && high a `OrdSeq.member` highEnds x
 
-{- O(log(n) -}
+{- O(log(i)) -}
 overlappingInterval ::
   Ord a => Interval a -> IntervalTree a -> Maybe (Interval a)
 overlappingInterval a = listToMaybe . overlappingIntervals a
 
-{- O(mlog(n/m), where m is number of matches -}
+{- O(log(n)^2) -}
 overlappingIntervals :: Ord a => Interval a -> IntervalTree a -> [Interval a]
 overlappingIntervals a (IntervalTree xs) = concatMap f l
   where
     f x =
       fmap (Interval (lowEnd x))
         . OrdSeq.toList
-        . OrdSeq.takeWhileR (low a <=)
+        . snd
+        . OrdSeq.splitAtElem (low a)
         $ highEnds x
     (l, r) = Base.split ((Common.Last (high a) <) . getLast) xs
 
@@ -258,7 +259,7 @@ mapMonotonic f (IntervalTree xs) =
   IntervalTree $
     Bifunc.bimap (mapSizeLastMaxMonotonic f) (mapIntervalElemMonotonic f) xs
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 infixr 5 ><
 

@@ -45,7 +45,7 @@ import qualified FingerTree as Base
 import Prelude hiding (map, null)
 
 data SizeLast a = SizeLast
-  { getSize :: Common.Size, -- sum of all multiplicities
+  { getSize :: Common.Size,
     getLast :: Common.Last a -- largest element in the set
   }
   deriving (Eq, Show)
@@ -189,34 +189,34 @@ mapMonotonic :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
 mapMonotonic f (Set xs) = Set $ Bifunc.bimap (fmap f) (fmap f) xs
 
 -- Set theoretic functions
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 union :: (Ord a) => Set a -> Set a -> Set a
 union (Set xs) (Set ys) = Set $ Common.unionWith const getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 intersection :: (Ord a) => Set a -> Set a -> Set a
 intersection (Set xs) (Set ys) =
   Set $ Common.intersectionWith const getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 difference :: (Ord a) => Set a -> Set a -> Set a
 difference (Set xs) (Set ys) =
   Set $ Common.differenceWith (\x y -> Nothing) getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 areDisjoint :: (Ord a) => Set a -> Set a -> Bool
 areDisjoint (Set xs) (Set ys) = Common.areDisjointWith getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 isSubsetOf :: (Ord a) => Set a -> Set a -> Bool
 isSubsetOf (Set xs) (Set ys) = Common.isSubsetOfWith size' (==) getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 isSupsetOf :: (Ord a) => Set a -> Set a -> Bool
 isSupsetOf (Set xs) (Set ys) = Common.isSupsetOfWith size' (==) getLast xs ys

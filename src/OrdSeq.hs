@@ -30,6 +30,7 @@ module OrdSeq
     drop,
     take,
     splitAt,
+    splitAtElem,
     fromFoldable,
     fromAscFoldable,
     fromDescFoldable,
@@ -219,7 +220,7 @@ map f = fromList . fmap f . toList
 mapMonotonic :: (Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
 mapMonotonic f (OrdSeq xs) = OrdSeq $ Bifunc.bimap (fmap f) (fmap f) xs
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 infixr 5 ><
 
@@ -283,6 +284,12 @@ splitAt :: Int -> OrdSeq a -> (OrdSeq a, OrdSeq a)
 splitAt i (OrdSeq xs) = (OrdSeq l, OrdSeq r)
   where
     (l, r) = Base.split ((Common.Size i <) . getSize) xs
+
+{- O(log(min(i, n - i))) -}
+splitAtElem :: Ord a => a -> OrdSeq a -> (OrdSeq a, OrdSeq a)
+splitAtElem i (OrdSeq xs) = (OrdSeq l, OrdSeq r)
+  where
+    (l, r) = Base.split ((Common.Last i <=) . getLast) xs
 
 -- Generalized functions
 {- O(nlog(n)) -}

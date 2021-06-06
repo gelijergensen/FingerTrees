@@ -14,11 +14,11 @@ name:               FingerTrees
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:            0.1.4.1
+version:            0.1.4.2
 
 -- A short (one-line) description of the package.
 synopsis:
-    An implementation of 2-3 Finger Trees as in Hinze & Paterson 2006 with applications
+    An implementation of 2-3 finger trees à la Hinze &amp; Paterson 2006, including several applications
 
 -- A longer description of the package.
 -- description:

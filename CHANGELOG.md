@@ -1,5 +1,9 @@
 # Revision history for FingerTrees
 
+## 0.1.4.2 -- 2021-06-06
+
+* Added explanation to README
+
 ## 0.1.4.1 -- 2021-06-06
 
 * Caught some bugs while adding tests

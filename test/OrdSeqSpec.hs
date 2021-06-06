@@ -153,6 +153,10 @@ spec = do
           Bifunc.bimap OS.toList OS.toList (OS.splitAt i (xs :: OS.OrdSeq Int))
             == splitAt i (OS.toList xs)
 
+  describe "OrdSeq.splitAtElem/OrdSeq.spanl" $ do
+    prop "OrdSeq.splitAtElem x == OrdSeq.spanl (< x)" $
+      \x xs -> OS.splitAtElem x (xs :: OS.OrdSeq Int) == OS.spanl (< x) xs
+
   describe "OrdSeq.foldlWithIndex" $ do
     prop
       "OrdSeq.foldlWithIndex and OrdSeq.foldrWithIndex agree for commutative functions"
