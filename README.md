@@ -1,6 +1,8 @@
 # FingerTrees
 An implementation of 2-3 finger trees à la [Hinze &amp; Paterson 2006](https://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf), including several applications.
 
+This project is one part of my Haskell portfolio, which can be found [here](https://github.com/gelijergensen/Haskell-Portfolio).
+
 # Finger Trees as Functional Data Structure
 
 In this section, we present an introduction to some of the theory of 2-3 finger trees.
@@ -19,6 +21,9 @@ data Queue a
   | Single a
   | Deep a (Queue a) a
 ```
+and as a diagram we could represent it like this: 
+![A recursive queue](diagrams/Queue-0.svg),
+where empty nodes are red, `Deep` nodes are blue, and values are green.
 While sufficient for some purposes, this implementation has a serious flaw: attempting to push an item onto the front of the queue is actually an `O(n)` operation instead of the expected `O(1)`:
 ```haskell
 cons :: a -> Queue a -> Queue a
@@ -39,8 +44,7 @@ At the highest level, we store single elements.
 In the second level, we store pairs of elements.
 In the third level, we store pairs of pairs of elements.
 As such, viewing the queue as a tree shows that the depth of the tree is logarithmic in the number of elements.
- * todo: a picture would be good here
-
+![A logarithmic depth queue](diagrams/Queue-1.svg).
 Unfortunately, this leads to a problem in the `cons` function: we no longer have an element in the front of the queue!
 ```haskell
 ...
@@ -98,10 +102,9 @@ cons a (Deep (Three b c d) mid r) = Deep (Two a b) (cons (Node c d) mid) r
 ```
 Here, the nodes of our tree contain either two or three elements (assuming there are at least two elements in the tree) and, as before, we pack together more and more elements as we go deeper into the tree.
 As in the above picture, this might look something like this:
-* todo: other picture here
-
-
-From here, we can greatly enhance the functionality of our data structure by putting metadata in the enterior nodes of the tree.
+![A 2 finger tree](diagrams/FingerTree-1.svg),
+where empty nodes are in red, `Deep` nodes are in blue, `Node` nodes are in purple, and `Digit`s are in green.
+From here, we can greatly enhance the functionality of our data structure by putting metadata in the interior nodes of the tree.
 Letting `v` be the type of these annotations, the new structure looks something like this:
 ```haskell
 data FingerTree v a
@@ -202,21 +205,20 @@ newtype Label = Label
 
 instance Monoid Label where
   mempty = Label ""
-  (Label x) <> (Label y) = Label (x ++ ", " ++ y)
+  (Label x) <> (Label y) = Label (x ++ y)
 
 instance Show a => Measured (Elem a) Label where
   measure (Elem a) = Label (show a)
 
 label :: FingerTree Label (Elem a) -> String
-label xs = "[" ++ unLabel (measure xs) ++ "]"
+label xs = "Tree: " ++ unLabel (measure xs)
 ```
 This would give us an `O(1)` method for printing out the contents of the finger tree in order.
 For instance, the tree
-* todo tree here
-
+![A 2 finger tree of chars](diagrams/FingerTree-2.svg)
 would have a label of
 ```haskell
-todo
+"Tree: abcdefghijklmnopqrstuvwxyzäö"
 ```
 
 ## References
