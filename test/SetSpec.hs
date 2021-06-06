@@ -99,7 +99,7 @@ spec = do
         S.toList (S.delete x xs :: S.Set Int)
           == List.delete x (S.toList xs)
 
-  describe "Set.delete" $ do
+  describe "Set.member" $ do
     prop "Set.member x == elem x . Set.toList" $
       \x xs -> S.member x (xs :: S.Set Int) == (x `elem` S.toList xs)
 
