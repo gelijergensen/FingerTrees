@@ -185,4 +185,7 @@ isSupsetOfWith fSize fLeq fMeas as bs@(b Base.:<| bs') =
     isSupsetRest =
       case r of
         Base.Empty -> False
-        (a Base.:<| r') -> fLeq b a && isSubsetOfWith fSize fLeq fMeas bs' r'
+        (a Base.:<| r') ->
+          a == b
+            && fLeq b a
+            && isSubsetOfWith fSize fLeq fMeas bs' r'

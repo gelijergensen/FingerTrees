@@ -14,7 +14,7 @@ name:               FingerTrees
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:            0.1.4.0
+version:            0.1.4.1
 
 -- A short (one-line) description of the package.
 synopsis:
@@ -80,7 +80,21 @@ test-suite FingerTrees-test
     hs-source-dirs:   test
 
     -- The entrypoint to the test suite.
-    main-is:          MyLibTest.hs
+    main-is:          Spec.hs
+
+    other-modules: 
+        DequeSpec
+      , IntervalTreeSpec
+      , MultiSetSpec
+      , OrdSeqSpec
+      , SetSpec
 
     -- Test dependencies.
-    build-depends:    base ^>=4.14.1.0
+    build-depends:    
+        base ^>=4.14.1.0
+      , containers
+      , hspec
+      , QuickCheck
+      , FingerTrees
+
+    build-tool-depends: hspec-discover:hspec-discover

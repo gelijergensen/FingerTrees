@@ -11,6 +11,7 @@ module IntervalTree
     singleton,
     null,
     size,
+    toList,
     fromList,
     fromAscList,
     fromDescList,
@@ -82,6 +83,9 @@ data IntervalElem a = IntervalElem
 newtype IntervalTree a
   = IntervalTree (Base.FingerTree (SizeLastMax a) (IntervalElem a))
 
+instance Ord a => Ord (Interval a) where
+  x <= y = low x < low y || (low x == low y && high x <= high y)
+
 instance Eq a => Eq (IntervalElem a) where
   x == y = lowEnd x == lowEnd y
 
@@ -117,6 +121,9 @@ instance Ord a => Base.Measured (IntervalElem a) (SizeLastMax a) where
         getLast = Common.Last $ lowEnd x,
         getMax = Common.Max . OrdSeq.last $ highEnds x
       }
+
+instance (Eq a) => Eq (IntervalTree a) where
+  xs == ys = toList xs == toList ys
 
 instance (Show a) => Show (IntervalTree a) where
   showsPrec p xs =
@@ -214,7 +221,8 @@ delete a (IntervalTree xs) =
   IntervalTree $ Base.modify (_delete a) ((Common.Last (low a) <=) . getLast) xs
   where
     _delete a Nothing = []
-    _delete a (Just x) = maybeToList $ deleteHighElem a x
+    _delete a (Just x) =
+      if low a == lowEnd x then maybeToList $ deleteHighElem a x else [x]
 
 {- O(log(i)), where i <= n/2 is distance from
    member location to nearest end -}
@@ -222,7 +230,7 @@ member :: (Ord a) => Interval a -> IntervalTree a -> Bool
 member a (IntervalTree xs) =
   case Base.lookup ((Common.Last (low a) <=) . getLast) xs of
     Nothing -> False
-    Just x -> high a `OrdSeq.member` highEnds x
+    Just x -> low a == lowEnd x && high a `OrdSeq.member` highEnds x
 
 {- O(log(n) -}
 overlappingInterval ::
@@ -260,11 +268,13 @@ infixr 5 ><
 
 {- O(1) -}
 head :: Ord a => IntervalTree a -> Interval a
+head Empty = error "IntervalTree.head: empty IntervalTree"
 head (IntervalTree (x Base.:<| _)) =
   Interval (lowEnd x) (OrdSeq.head $ highEnds x)
 
 {- amortized O(1), worst case O(log(n)) -}
 tail :: Ord a => IntervalTree a -> IntervalTree a
+tail Empty = error "IntervalTree.tail: empty IntervalTree"
 tail (IntervalTree (x Base.:<| xs)) = case OrdSeq.tail $ highEnds x of
   OrdSeq.Empty -> IntervalTree xs
   highEnds' ->
@@ -273,11 +283,13 @@ tail (IntervalTree (x Base.:<| xs)) = case OrdSeq.tail $ highEnds x of
 
 {- O(1) -}
 last :: Ord a => IntervalTree a -> Interval a
+last Empty = error "IntervalTree.last: empty IntervalTree"
 last (IntervalTree (_ Base.:|> x)) =
   Interval (lowEnd x) (OrdSeq.last $ highEnds x)
 
 {- amortized O(1), worst case O(log(n)) -}
 init :: Ord a => IntervalTree a -> IntervalTree a
+init Empty = error "IntervalTree.init: empty IntervalTree"
 init (IntervalTree (xs Base.:|> x)) = case OrdSeq.init $ highEnds x of
   OrdSeq.Empty -> IntervalTree xs
   highEnds' ->

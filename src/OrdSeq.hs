@@ -234,18 +234,22 @@ infixr 5 ><
 
 {- O(1) -}
 head :: OrdSeq a -> a
+head Empty = error "OrdSeq.head: empty OrdSeq"
 head (OrdSeq (x Base.:<| _)) = unElem x
 
 {- amortized O(1), worst case O(log(n)) -}
 tail :: OrdSeq a -> OrdSeq a
+tail Empty = error "OrdSeq.tail: empty OrdSeq"
 tail (OrdSeq (_ Base.:<| xs)) = OrdSeq xs
 
 {- O(1) -}
 last :: OrdSeq a -> a
+last Empty = error "OrdSeq.last: empty OrdSeq"
 last (OrdSeq (_ Base.:|> x)) = unElem x
 
 {- amortized O(1), worst case O(log(n)) -}
 init :: OrdSeq a -> OrdSeq a
+init Empty = error "OrdSeq.init: empty OrdSeq"
 init (OrdSeq (xs Base.:|> _)) = OrdSeq xs
 
 {- O(log(min(i, n-i))) -}

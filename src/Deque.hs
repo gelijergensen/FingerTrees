@@ -268,18 +268,22 @@ viewR (Deque xs) = case xs of
 
 {- O(1) -}
 head :: Deque a -> a
+head Empty = error "Deque.head: empty Deque"
 head (x :<| _) = x
 
 {- amortized O(1), worst case O(log(n)) -}
 tail :: Deque a -> Deque a
+tail Empty = error "Deque.tail: empty Deque"
 tail (_ :<| xs) = xs
 
 {- O(1) -}
 last :: Deque a -> a
+last Empty = error "Deque.last: empty Deque"
 last (_ :|> x) = x
 
 {- amortized O(1), worst case O(log(n)) -}
 init :: Deque a -> Deque a
+init Empty = error "Deque.init: empty Deque"
 init (xs :|> _) = xs
 
 {- O(log(min(i, n-i))) -}
@@ -434,7 +438,7 @@ breakl p xs = case findIndexL p xs of
 {- O(i), where i is the first matching index -}
 breakr :: (a -> Bool) -> Deque a -> (Deque a, Deque a)
 breakr p xs = case findIndexR p xs of
-  Nothing -> (xs, Empty)
+  Nothing -> (Empty, xs)
   Just i -> splitAt (i + 1) xs
 
 {- O(i), where i is the first matching index -}
@@ -451,7 +455,7 @@ takeWhileL p = fst . spanl p
 
 {- O(i), where i is the first matching index -}
 takeWhileR :: (a -> Bool) -> Deque a -> Deque a
-takeWhileR p = fst . spanr p
+takeWhileR p = snd . spanr p
 
 {- O(i), where i is the first matching index -}
 dropWhileL :: (a -> Bool) -> Deque a -> Deque a
@@ -459,7 +463,7 @@ dropWhileL p = snd . spanl p
 
 {- O(i), where i is the first matching index -}
 dropWhileR :: (a -> Bool) -> Deque a -> Deque a
-dropWhileR p = snd . spanr p
+dropWhileR p = fst . spanr p
 
 {- O(n) -}
 partition :: (a -> Bool) -> Deque a -> (Deque a, Deque a)
