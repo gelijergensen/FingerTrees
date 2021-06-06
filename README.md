@@ -282,7 +282,7 @@ data SizeLast a = SizeLast
     getLast :: Last a -- largest element in the set
   }
 
-newtype Set a = Set (Base.FingerTree (SizeLast a) (Elem a))
+newtype Set a = Set (FingerTree (SizeLast a) (Elem a))
 
 instance Monoid (Last a) where
   x <> NoLast = x
@@ -324,6 +324,55 @@ as well as `O(n)` and `O(n * log(n))` mapping, depending on whether the function
 The `Set` implementation is a `Foldable`, but not a `Functor` (due to the `Ord` constraint).
 
 ## Multisets
+
+As a minor modification of the previous section, we can also implement multisets, which are sets which possible contain multiple copies of the same element.
+We do this by simply tallying the count of an element along with its value in the finger tree.
+This also means we keep track of two different `Size` annotations: one for the number of unique values and one for the total number of values in the tree.
+```haskell
+data MultiSizeLast a = MultiSizeLast
+  { cardinality :: Size, -- sum of all multiplicities
+    supportSize :: Size, -- number of unique elements
+    getLast :: Last a -- largest element in the multiset
+  }
+
+data MultiElem a = MultiElem
+  { unMultiElem :: a,
+    multiplicity :: Int
+  }
+
+newtype MultiSet a = MultiSet (FingerTree (MultiSizeLast a) (MultiElem a))
+
+instance Monoid (MultiSizeLast a) where
+  x <> y =
+    MultiSizeLast
+      { cardinality = cardinality x <> cardinality y,
+        supportSize = supportSize x <> supportSize y,
+        getLast = getLast x <> getLast y
+      }
+  mempty =
+    MultiSizeLast
+      { cardinality = mempty,
+        supportSize = mempty,
+        getLast = mempty
+      }
+
+instance Measured (MultiElem a) (MultiSizeLast a) where
+  measure x =
+    MultiSizeLast
+      { cardinality = Common.Size $ multiplicity x,
+        supportSize = Common.Size 1,
+        getLast = Common.Last $ unMultiElem x
+      }
+```
+An addition to offering all of the operations of `Set` (with the exception of `member` and `delete`), the implementation offers `O(1)`
+* number of unique elements,
+
+`O(log(min(i, n - i)))`
+* deletion of a single copy or all copies of an element (`deleteOnce`, `deleteEach`) and
+* `count` of an element (instead of `member`),
+
+as well as `O(n)` computation of the `support` of the multiset (i.e. the conversion to a set by forgetting the count of each element).
+As with `Set`, the `MultiSet` implementation is a `Foldable`, but not `Functor`.
 
 ## Ordered Sequences
 
