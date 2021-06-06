@@ -3,7 +3,7 @@ An implementation of 2-3 finger trees à la [Hinze &amp; Paterson 2006](https://
 
 This project is one part of my Haskell portfolio, which can be found [here](https://github.com/gelijergensen/Haskell-Portfolio).
 
-# Finger Trees as Functional Data Structure
+# Finger Trees as General-Purpose Functional Data Structure
 
 In this section, we present an introduction to some of the theory of 2-3 finger trees.
 Ralf Hinze and Ross Paterson [[1]](#References) introduced 2-3 finger trees in 2006 as a purely functional data structure for persistent sequences. 
@@ -221,7 +221,58 @@ would have a label of
 "Tree: abcdefghijklmnopqrstuvwxyzäö"
 ```
 
-## References
+# Finger Trees as Implementations of Data Structures
+
+Here, we briefly describe the application of finger trees to implement 5 different data structures.
+
+## Deques
+
+Finger trees can be easily modified to work as double-ended queues.
+As in the introduction above, we use a simple newtype wrapper `Elem` around the elements of the deque and also keep track of the length of the deque using the `Size` monoid:
+```haskell
+newtype Deque a = Deque (FingerTree Size (Elem a))
+
+newtype Size = Size
+  { unSize :: Int
+  }
+
+newtype Elem a = Elem
+  { unElem :: a
+  }
+
+instance Monoid Size where
+  mempty = Size 0
+  Size x <> Size y = Size (x + y)
+
+instance Measured (Elem a) Size where
+  measure _ = Size 1
+```
+The implementation here offers `O(1)`
+* insertion at ends (`<|` or `|>`),
+* `head`, `tail`, `last`, `init`,
+
+`O(log(min(i, n-i)))`
+* random access lookups (`lookup i`),
+* random access insertion/deletion/modification (`insertAt i`, `deleteAt i`, `modifyAt i`),
+* splitting (`take i`, `drop i`, `splitAt i`),
+
+`O(i)`
+* index finding from the left or right end (`findIndexL`, `findIndexR`), and
+* spanning from the left or right end (`spanl`, `spanr`),
+
+as well as an assortment of `O(n)` folding, mapping, traversal, and zipping operations.
+The `Deque` implemention is even a `Traversable`!
+
+
+## Sets
+
+## Multisets
+
+## Ordered Sequences
+
+## Interval Trees
+
+# References
 
 [1]: Hinze, Ralf, and Ross Paterson. "Finger trees: a simple general-purpose data structure." Journal of functional programming 16.2 (2006): 197-218.
 [2]: Okasaki, Chris. Purely functional data structures. Cambridge University Press, 1999.
