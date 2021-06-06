@@ -44,7 +44,7 @@ At the highest level, we store single elements.
 In the second level, we store pairs of elements.
 In the third level, we store pairs of pairs of elements.
 As such, viewing the queue as a tree shows that the depth of the tree is logarithmic in the number of elements.
-![A logarithmic depth queue](diagrams/Queue-1.svg).
+![A logarithmic depth queue](diagrams/Queue-1.svg)
 Unfortunately, this leads to a problem in the `cons` function: we no longer have an element in the front of the queue!
 ```haskell
 ...
@@ -102,7 +102,7 @@ cons a (Deep (Three b c d) mid r) = Deep (Two a b) (cons (Node c d) mid) r
 ```
 Here, the nodes of our tree contain either two or three elements (assuming there are at least two elements in the tree) and, as before, we pack together more and more elements as we go deeper into the tree.
 As in the above picture, this might look something like this:
-![A 2 finger tree](diagrams/FingerTree-1.svg),
+![A 2 finger tree](diagrams/FingerTree-1.svg)
 where empty nodes are in red, `Deep` nodes are in blue, `Node` nodes are in purple, and `Digit`s are in green.
 From here, we can greatly enhance the functionality of our data structure by putting metadata in the interior nodes of the tree.
 Letting `v` be the type of these annotations, the new structure looks something like this:
@@ -248,13 +248,17 @@ instance Measured (Elem a) Size where
   measure _ = Size 1
 ```
 The implementation here offers `O(1)`
-* insertion at ends (`<|` or `|>`),
+* size,
+* insertion at ends (`<|` or `|>`), and
 * `head`, `tail`, `last`, `init`,
 
 `O(log(min(i, n-i)))`
 * random access lookups (`lookup i`),
-* random access insertion/deletion/modification (`insertAt i`, `deleteAt i`, `modifyAt i`),
+* random access insertion/deletion/modification (`insertAt i`, `deleteAt i`, `modifyAt i`), and
 * splitting (`take i`, `drop i`, `splitAt i`),
+
+`O(log(min(n, m)))`
+* concatenation of deques,
 
 `O(i)`
 * index finding from the left or right end (`findIndexL`, `findIndexR`), and
@@ -263,8 +267,61 @@ The implementation here offers `O(1)`
 as well as an assortment of `O(n)` folding, mapping, traversal, and zipping operations.
 The `Deque` implemention is even a `Traversable`!
 
-
 ## Sets
+
+Since finger trees are trees under the hood, we can also take advantage of them to implement sets.
+To do this, we actually combine two different monoids: `Size` from above, as well as `Last a` which always returns the second argument.
+If we maintain the invariant that the finger tree holds elements in ascending order, then `Last a` is actually equivalent to the maximum element in the (sub)tree as serves as "signposts" for quick insertion/deletion which preserves the invariant.
+```haskell
+data Last a
+  = NoLast
+  | Last a
+
+data SizeLast a = SizeLast
+  { getSize :: Size, 
+    getLast :: Last a -- largest element in the set
+  }
+
+newtype Set a = Set (Base.FingerTree (SizeLast a) (Elem a))
+
+instance Monoid (Last a) where
+  x <> NoLast = x
+  _ <> x = x
+  mempty = NoLast
+
+instance Monoid (SizeLast a) where
+  x <> y =
+    SizeLast
+      { getSize = getSize x <> getSize y,
+        getLast = getLast x <> getLast y
+      }
+  mempty =
+    SizeLast
+      { getSize = mempty,
+        getLast = mempty
+      }
+
+instance Measured (Elem a) (SizeLast a) where
+  measure x =
+    SizeLast
+      { getSize = Common.Size 1,
+        getLast = Common.Last $ unElem x
+      }
+```
+The resulting implementation offers `O(1)`
+* size and
+* retrieval of the minimum and maximum elements,
+
+`O(log(min(i, n-i)))`
+* retrieval of the ith smallest / largest element and
+* insertion, deletion, and membership checking,
+
+`O(m*log(n/m + 1))`
+* set-theoretic union, intersection, and difference and
+* disjointedness and subset checking,
+
+as well as `O(n)` and `O(n * log(n))` mapping, depending on whether the function preserves the order of the elements.
+The `Set` implementation is a `Foldable`, but not a `Functor` (due to the `Ord` constraint).
 
 ## Multisets
 

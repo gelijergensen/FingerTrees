@@ -219,7 +219,7 @@ map f = fromList . fmap f . toList
 mapMonotonic :: (Ord b) => (a -> b) -> OrdSeq a -> OrdSeq b
 mapMonotonic f (OrdSeq xs) = OrdSeq $ Bifunc.bimap (fmap f) (fmap f) xs
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 infixr 5 ><
 

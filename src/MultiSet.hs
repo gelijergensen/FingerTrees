@@ -227,36 +227,36 @@ mapMonotonic :: (Ord a, Ord b) => (a -> b) -> MultiSet a -> MultiSet b
 mapMonotonic f (MultiSet xs) = MultiSet $ Bifunc.bimap (fmap f) (fmap f) xs
 
 -- Set theoretic functions
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 union :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
 union (MultiSet xs) (MultiSet ys) =
   MultiSet $ Common.unionWith sumMultiElem getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 intersection :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
 intersection (MultiSet xs) (MultiSet ys) =
   MultiSet $ Common.intersectionWith minMultiElem getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 difference :: (Ord a) => MultiSet a -> MultiSet a -> MultiSet a
 difference (MultiSet xs) (MultiSet ys) =
   MultiSet $ Common.differenceWith differenceMultiElem getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 areDisjoint :: (Ord a) => MultiSet a -> MultiSet a -> Bool
 areDisjoint (MultiSet xs) (MultiSet ys) = Common.areDisjointWith getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 isSubsetOf :: (Ord a) => MultiSet a -> MultiSet a -> Bool
 isSubsetOf (MultiSet xs) (MultiSet ys) =
   Common.isSubsetOfWith size' ((<=) `on` multiplicity) getLast xs ys
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 isSupsetOf :: (Ord a) => MultiSet a -> MultiSet a -> Bool
 isSupsetOf (MultiSet xs) (MultiSet ys) =

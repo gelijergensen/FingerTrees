@@ -258,7 +258,7 @@ mapMonotonic f (IntervalTree xs) =
   IntervalTree $
     Bifunc.bimap (mapSizeLastMaxMonotonic f) (mapIntervalElemMonotonic f) xs
 
-{- Probably amortized O(m log(n/m + 1),
+{- Probably amortized O(m log(n/m + 1)),
    where m <= n lengths of xs and ys -}
 infixr 5 ><
 
