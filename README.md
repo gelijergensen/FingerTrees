@@ -248,7 +248,7 @@ instance Measured (Elem a) Size where
   measure _ = Size 1
 ```
 The implementation here offers `O(1)`
-* size,
+* `size`,
 * insertion at ends (`<|` or `|>`), and
 * `head`, `tail`, `last`, `init`,
 
@@ -309,7 +309,7 @@ instance Measured (Elem a) (SizeLast a) where
       }
 ```
 The resulting implementation offers `O(1)`
-* size and
+* `size` and
 * retrieval of the minimum and maximum elements,
 
 `O(log(min(i, n-i)))`
@@ -359,9 +359,9 @@ instance Monoid (MultiSizeLast a) where
 instance Measured (MultiElem a) (MultiSizeLast a) where
   measure x =
     MultiSizeLast
-      { cardinality = Common.Size $ multiplicity x,
-        supportSize = Common.Size 1,
-        getLast = Common.Last $ unMultiElem x
+      { cardinality = Size $ multiplicity x,
+        supportSize = Size 1,
+        getLast = Last $ unMultiElem x
       }
 ```
 An addition to offering all of the operations of `Set` (with the exception of `member` and `delete`), the implementation offers `O(1)`
@@ -375,6 +375,34 @@ as well as `O(n)` computation of the `support` of the multiset (i.e. the convers
 As with `Set`, the `MultiSet` implementation is a `Foldable`, but not `Functor`.
 
 ## Ordered Sequences
+
+A queue can be easily modified into a priority queue.
+Ordered sequences priority queues as well as heaps (albeit with slightly different complexities for inserting and min/max retrieval [`O(log(n))` instead of `O(1)` and `O(1)` instead of `O(log(n))`, respectively]).
+The underlying structure is remarkably similar for `OrdSeq` and `MultiSet`: rather than treat multiple copies of an element as a single element with a count greater than 1, we simply insert multiple copies of the element.
+In actuality, both of these structures could be combined into a single structure.
+However, as the interface for these two structures is vastly different (one of them is an unstructured "bag", while the other is a well-defined sequence of elements), we provide different operations for them.
+`OrdSeq` uses the same `SizeLast` measure and `Elem` elements as `Set`:
+```haskell
+newtype OrdSeq a = OrdSeq (FingerTree (SizeLast a) (Elem a))
+```
+The implementation has similar complexities to `Set`, but provides mostly the same operations as `Deque`, including `O(1)`
+* `size` and 
+* `head`, `tail`, `last`, `init`,
+
+`O(log(min(i, n-i)))`
+* random access lookups (`lookup i`),
+* insertion/deletion/modification and
+* splitting (`take i`, `drop i`, `splitAt i`),
+
+`O(i)`
+* index finding from the left or right end (`findIndexL`, `findIndexR`), and
+* spanning from the left or right end (`spanl`, `spanr`),
+
+`O(m*log(n/m + 1))`
+* concatenation,
+
+`O(n)` and `O(n * log(n))` mapping, depending on whether the function preserves the order of the elements, as well as a similar assortment of `O(n)` folding and zipping operations.
+Due to the `Ord` constraint, `OrdSeq` is only a `Foldable` and not a `Functor` or `Traversable`.
 
 ## Interval Trees
 
