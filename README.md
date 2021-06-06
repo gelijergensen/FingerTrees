@@ -3,5 +3,4 @@ An implementation of 2-3 Finger Trees as in Hinze &amp; Paterson 2006 with appli
 
 ## TODO:
 
-1. Testing
-2. Fill out README
+1. Fill out README
