@@ -1,4 +1,6 @@
 # FingerTrees
+![status badge](https://github.com/gelijergensen/FingerTrees/actions/workflows/haskell.yml/badge.svg)
+
 An implementation of 2-3 finger trees à la [Hinze &amp; Paterson 2006](https://www.staff.city.ac.uk/~ross/papers/FingerTree.pdf), including several applications.
 
 This project is one part of my Haskell portfolio, which can be found [here](https://github.com/gelijergensen/Haskell-Portfolio).
