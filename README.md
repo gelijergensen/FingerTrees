@@ -8,6 +8,7 @@ This project is one part of my Haskell portfolio, which can be found [here](http
 # Finger Trees as General-Purpose Functional Data Structure
 
 In this section, we present an introduction to some of the theory of 2-3 finger trees.
+In the following section, we briefly describe the implementation of several particular data structures included in this project.
 Ralf Hinze and Ross Paterson [[1]](#References) introduced 2-3 finger trees in 2006 as a purely functional data structure for persistent sequences. 
 While previous implementations of purely functional persistent sequences existed (e.g. the catenable deques of Okasaki 1999 [[2]](#References)), 2-3 finger trees have the distinct advantage of being both relatively simple as well as very general.
 
@@ -53,7 +54,7 @@ As such, viewing the queue as a tree shows that the depth of the tree is logarit
 
 Unfortunately, this leads to a problem in the `cons` function: we no longer have an element in the front of the queue!
 ```haskell
-...
+--...
 cons a (Deep f mid r) = Deep undefined (cons (a, f) mid) r
 ```
 We need a bit more flexibility on the first and last elements of the queue, so we introduce a new data type: a `Digit` which contains either one or two elements
@@ -79,10 +80,12 @@ cons a (Deep (Two b c) mid r) = Deep (One a) (cons (b, c) mid) r
 Notice that the `cons` operation is well-defined and only requires `O(log(n))` operations in the worst case: even if we recurse on every call to `cons`, the depth of the queue is only logarithmic.
 In fact, we do considerably better on average, since only every other element which we `cons` onto the front of the queue recurses to the next level.
 On average, the complexity is therefore
-![](https://latex.codecogs.com/gif.latex?%5Cfrac%7B1%7D%7B2%7D*1%20&plus;%20%5Cfrac%7B1%7D%7B4%7D*2%20&plus;%20%5Cfrac%7B1%7D%7B8%7D*3%20&plus;%20%5Cdots%20&plus;%20%5Cfrac%7B1%7D%7B2%5E%7B%5Clog%28n%29%7D%7D*%5Clog%28n%29%20%3D%20%5Csum_%7Bi%20%3D%201%7D%5E%7B%5Clog%28n%29%7D%20%5Cfrac%7Bi%7D%7B2%5Ei%7D%20%3C%20%5Csum_%7Bi%20%3D%201%7D%5E%7B%5Cinfty%7D%20%5Cfrac%7Bi%7D%7B2%5Ei%7D%20%3D%202)
+![](https://latex.codecogs.com/png.image?\dpi{110}&space;\bg_white&space;%5Cfrac%7B1%7D%7B2%7D*1%20&plus;%20%5Cfrac%7B1%7D%7B4%7D*2%20&plus;%20%5Cfrac%7B1%7D%7B8%7D*3%20&plus;%20%5Cdots%20&plus;%20%5Cfrac%7B1%7D%7B2%5E%7B%5Clog%28n%29%7D%7D*%5Clog%28n%29%20%3D%20%5Csum_%7Bi%20%3D%201%7D%5E%7B%5Clog%28n%29%7D%20%5Cfrac%7Bi%7D%7B2%5Ei%7D%20%3C%20%5Csum_%7Bi%20%3D%201%7D%5E%7B%5Cinfty%7D%20%5Cfrac%7Bi%7D%7B2%5Ei%7D%20%3D%202)
+
 So the average complexity of this operation is actually `O(1)`, just like we wanted!
 
 The `Queue` structure which we have designed above could be thought of as a sort of 1-2 finger tree: each of the nodes in the tree contains either 1 or 2 elements and we have "pointers" (aka fingers) to the first and last element of the tree.
+If we change the definition of `Digit`, we can easily obtain a tree where each of the nodes contains either 2 or 3 elements instead.
 Putting all the above together, we are ready to present the simplest formulation for 2-3 finger trees:
 ```haskell
 data FingerTree a 
@@ -205,7 +208,7 @@ size :: FingerTree Size (Elem a) -> Int
 size = unSize . measure
 ```
 Best of all, we can easily use any monoid `m` we wish to, as long as we define the `Measured (Elem a) m` instance.
-As a freebie, consider adding "labels":
+As an example, consider adding "labels":
 ```haskell
 newtype Label = Label
   { unLabel :: String
@@ -233,7 +236,9 @@ would have a label of
 
 # Finger Trees as Implementations of Data Structures
 
-Here, we briefly describe the application of finger trees to implement 5 different data structures.
+Here, we briefly describe the application of finger trees to implement 5 different data structures: deques, sets, multisets, ordered sequences, and interval trees.
+The code for each of these data structures can be found in the similarly named module.
+With the exception of `IntervalTree`, which depends on the `OrdSeq` implementation and the function `support :: MultiSet a -> Set a`, all modules are independent of each other.
 
 ## Deques
 
@@ -257,7 +262,7 @@ instance Monoid Size where
 instance Measured (Elem a) Size where
   measure _ = Size 1
 ```
-The implementation here offers `O(1)`
+The implementation in this project offers `O(1)`
 * `size`,
 * insertion at ends (`<|` or `|>`), and
 * `head`, `tail`, `last`, `init`,
@@ -268,7 +273,7 @@ The implementation here offers `O(1)`
 * splitting (`take i`, `drop i`, `splitAt i`),
 
 `O(log(min(n, m)))`
-* concatenation of deques,
+* concatenation of deques of size `n` and `m`,
 
 `O(i)`
 * index finding from the left or right end (`findIndexL`, `findIndexR`), and
@@ -280,8 +285,9 @@ The `Deque` implemention is even a `Traversable`!
 ## Sets
 
 Since finger trees are trees under the hood, we can also take advantage of them to implement sets.
-To do this, we actually combine two different monoids: `Size` from above, as well as `Last a` which always returns the second argument.
-If we maintain the invariant that the finger tree holds elements in ascending order, then `Last a` is actually equivalent to the maximum element in the (sub)tree as serves as "signposts" for quick insertion/deletion which preserves the invariant.
+To do this, we actually combine two different monoids: `Size` from above, as well as `Last a`, which always returns the second argument.
+If we maintain the invariant that the finger tree holds elements in ascending order, then `Last a` is actually equivalent to the maximum element in the (sub)tree. 
+This serves as "signposts" for quick insertion/deletion methods which preserve the invariant.
 ```haskell
 data Last a
   = NoLast
@@ -323,7 +329,7 @@ The resulting implementation offers `O(1)`
 * retrieval of the minimum and maximum elements,
 
 `O(log(min(i, n-i)))`
-* retrieval of the ith smallest / largest element and
+* retrieval of the `i`th smallest / largest element and
 * insertion, deletion, and membership checking,
 
 `O(m*log(n/m + 1))`
@@ -387,7 +393,7 @@ As with `Set`, the `MultiSet` implementation is a `Foldable`, but not `Functor`.
 ## Ordered Sequences
 
 A queue can be easily modified into a priority queue.
-Ordered sequences priority queues as well as heaps (albeit with slightly different complexities for inserting and min/max retrieval [`O(log(n))` instead of `O(1)` and `O(1)` instead of `O(log(n))`, respectively]).
+Ordered sequences subsume priority queues as well as heaps (albeit with slightly different complexities for inserting and min/max retrieval [`O(log(n))` instead of `O(1)` and `O(1)` instead of `O(log(n))`, respectively]).
 The underlying structure is remarkably similar for `OrdSeq` and `MultiSet`: rather than treat multiple copies of an element as a single element with a count greater than 1, we simply insert multiple copies of the element.
 In actuality, both of these structures could be combined into a single structure.
 However, as the interface for these two structures is vastly different (one of them is an unstructured "bag", while the other is a well-defined sequence of elements), we provide different operations for them.
