@@ -5,6 +5,16 @@ An implementation of 2-3 finger trees à la [Hinze &amp; Paterson 2006](https://
 
 This project is one part of my Haskell portfolio, which can be found [here](https://github.com/gelijergensen/Haskell-Portfolio).
 
+## Project Structure
+
+The project consists of a single library, the code for which is in the `src/` directory.
+- `src/FingerTree` and `src/FingerTreeHelper` contain the code for the base finger tree implementation,
+- `src/CommonTypes` contains code which is shared among each of the 5 data structures designed over finger trees,
+- `src/Deque`, `src/Set`, `src/MultiSet`, `src/OrdSeq`, and `src/IntervalTree` hold the implementations of each of the 5 example applications
+
+The `test/` directory also contains tests for the library modules.
+The `diagrams/` directory simply contains the .svg images which are used in this README.
+
 # Finger Trees as General-Purpose Functional Data Structure
 
 In this section, we present an introduction to some of the theory of 2-3 finger trees.
